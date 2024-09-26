@@ -1,5 +1,5 @@
-github.com/golang/geo v0.0.0-20230421003525-6adc56603217 h1:HKlyj6in2JV6wVkmQ4XmG/EIm+SCYlPZ+V4GWit7Z+I=
-github.com/golang/geo v0.0.0-20230421003525-6adc56603217/go.mod h1:8wI0hitZ3a1IxZfeH3/5I97CI8i5cLGsYe7xNhQGs9U=
+github.com/go-chi/chi/v5 v5.1.0 h1:acVI1TYaD+hhedDJ3r54HyA6sExp3HfXq7QWEEY/xMw=
+github.com/go-chi/chi/v5 v5.1.0/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
 github.com/joshuaferrara/go-satellite v0.0.0-20220611180459-512638c64e5b h1:JlltDRgni6FuoFwluvoZCrE6cmpojccO4WsqeYlFJLE=
 github.com/joshuaferrara/go-satellite v0.0.0-20220611180459-512638c64e5b/go.mod h1:msW2QeN9IsnRyvuK8OBAzBwn6DHwXpiAiqBk8dbLfrU=
 github.com/onsi/ginkgo v1.2.1-0.20160509182050-5437a97bf824 h1:MbMqwlWoESqhGm4Sslfdyeq7Ww8R9ppeKS5DcO3xDI0=

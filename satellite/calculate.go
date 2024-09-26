@@ -18,9 +18,10 @@ type Satellite struct {
 }
 
 type SatelliteCoords struct {
-	Lat float64
-	Lon float64
-	Alt float64
+	Lat       float64 `json:"lat"`
+	Lon       float64 `json:"lon"`
+	Alt       float64 `json:"alt"`
+	GMapsLink string  `json:"gmapsLink"`
 }
 
 func New(line1 string, line2 string, name string) Satellite {
@@ -60,9 +61,10 @@ func (s Satellite) Calculate(t time.Time) (*SatelliteCoords, error) {
 	lat = math.Mod(lat+540, 360) - 180
 
 	return &SatelliteCoords{
-		Lat: lat,
-		Lon: lon,
-		Alt: alt,
+		Lat:       lat,
+		Lon:       lon,
+		Alt:       alt,
+		GMapsLink: fmt.Sprintf("https://www.google.com/maps/place/%f+%f", lat, lon),
 	}, nil
 }
 
