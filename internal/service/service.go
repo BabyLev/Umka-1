@@ -23,6 +23,8 @@ func SetupRouter() *chi.Mux {
 	router.Get("/", MainPage) // "/" - path, root path // корневой путь
 
 	router.Get("/calculate/", Calculate)
+	router.Post("/look-angles/", LookAngles)
+
 	return router
 }
 
@@ -69,5 +71,46 @@ func Calculate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte(res))
+	w.Write(res)
+}
+
+// POST /look_angles
+// Example request
+//
+//	{
+//	    "line1": "1 57172U 23091G   24277.18824023  .00015270  00000-0  94531-3 0  9997",
+//	    "line2": "2 57172  97.5992 328.2179 0017737 111.7890 248.5228 15.09757499 69775",
+//	    "satName": "UMKA-(RS40S)",
+//	    "timestamp": 1727978254,
+//	    "lat": 55.43025412211996,
+//	    "lon": 37.51934842793972,
+//	    "alt": 0.151
+//	}
+func LookAngles(w http.ResponseWriter, r *http.Request) {
+	var req LookAnglesRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("ошибка декодирования запроса: %w", err).Error()))
+		return
+	}
+
+	sat := satellite.New(req.Line1, req.Line2, req.SatName)
+
+	t := time.Unix(req.Timestamp, 0)
+
+	lookAngles := sat.LookAngles(t, satellite.ObserverCoords{
+		Lon: req.Lon,
+		Lat: req.Lat,
+		Alt: req.Alt,
+	})
+
+	res, err := json.Marshal(lookAngles)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("error marshalling coords: %w", err).Error()))
+		return
+	}
+
+	w.Write(res)
 }

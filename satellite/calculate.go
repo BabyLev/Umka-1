@@ -9,21 +9,6 @@ import (
 	"github.com/joshuaferrara/go-satellite"
 )
 
-type Satellite struct {
-	line1 string
-	line2 string
-	name  string
-
-	sat *satellite.Satellite
-}
-
-type SatelliteCoords struct {
-	Lat       float64 `json:"lat"`
-	Lon       float64 `json:"lon"`
-	Alt       float64 `json:"alt"`
-	GMapsLink string  `json:"gmapsLink"`
-}
-
 func New(line1 string, line2 string, name string) Satellite {
 	sat := satellite.TLEToSat(line1, line2, satellite.GravityWGS84)
 
@@ -66,6 +51,26 @@ func (s Satellite) Calculate(t time.Time) (*SatelliteCoords, error) {
 		Alt:       alt,
 		GMapsLink: fmt.Sprintf("https://www.google.com/maps/place/%f+%f", lat, lon),
 	}, nil
+}
+
+func (s Satellite) LookAngles(t time.Time, obsCoords ObserverCoords) LookAngles {
+	jday := satellite.JDay(t.Year(), int(t.Month()), t.Day(), t.Hour(), t.Minute(), t.Second())
+
+	// рассчитываем позицию спутника на переданный момент времени
+	satPosition, _ := satellite.Propagate(*s.sat, t.Year(), int(t.Month()), t.Day(), t.Hour(), t.Minute(), t.Second())
+
+	observerPosition := satellite.LatLong{
+		Latitude:  obsCoords.Lat,
+		Longitude: obsCoords.Lon,
+	}
+
+	lookAngles := satellite.ECIToLookAngles(satPosition, observerPosition, obsCoords.Alt, jday)
+
+	return LookAngles{
+		Az:    lookAngles.Az,
+		El:    lookAngles.El,
+		Range: lookAngles.Rg,
+	}
 }
 
 func (s *Satellite) UpdateTLE(line1, line2 string) {
