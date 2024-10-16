@@ -73,6 +73,50 @@ func (s Satellite) LookAngles(t time.Time, obsCoords ObserverCoords) LookAngles 
 	}
 }
 
+// от текущего времени  рассчитает временные диапазоны, когда видно спутник над заданной точкой
+// в нужном количестве (от 1 до n диапазонов)
+// один диапазон - это время восхода и захода спутника
+// n >= 1
+func (s Satellite) VisibleTimeRange(t time.Time, obsCoords ObserverCoords, n int) []TimeRange {
+	// запомнить время, когда элевация равна нулю (но была отрицательная) - значит, спутник появился над горизонтом
+	// запомнить время, когда элевация снова стала равна нулю (но была положительная) - значит, спутник опустился за горизонт
+	// повторить Н раз
+
+	timeRangeList := make([]TimeRange, 0, n)
+	tCalc := t
+
+	for i := 0; i < n; i++ {
+		var timeRange TimeRange
+
+		var prevEl float64
+		for {
+			lookAngles := s.LookAngles(tCalc, obsCoords)
+
+			if prevEl < 0 && lookAngles.El >= 0 {
+				timeRange.From = tCalc // спутник появился над горизонтом
+			}
+
+			if prevEl > 0 && lookAngles.El <= 0 {
+				timeRange.To = tCalc // зашел за горизонт
+				diff := timeRange.To.Sub(timeRange.From)
+				timeRange.Difference = diff.String()
+				timeRangeList = append(timeRangeList, timeRange) // можем добавлять полученный диапазон в список диапазонов
+				break
+			}
+
+			prevEl = lookAngles.El
+			tCalc = tCalc.Add(time.Second)
+
+			if t.Add(time.Hour * 24 * 5).Before(tCalc) {
+				break
+			}
+		}
+
+	}
+
+	return timeRangeList
+}
+
 func (s *Satellite) UpdateTLE(line1, line2 string) {
 	s.line1 = line1
 	s.line2 = line2

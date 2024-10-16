@@ -24,6 +24,7 @@ func SetupRouter() *chi.Mux {
 
 	router.Get("/calculate/", Calculate)
 	router.Post("/look-angles/", LookAngles)
+	router.Post("/time-ranges/", VisibleTimeRange)
 
 	return router
 }
@@ -97,7 +98,13 @@ func LookAngles(w http.ResponseWriter, r *http.Request) {
 
 	sat := satellite.New(req.Line1, req.Line2, req.SatName)
 
-	t := time.Unix(req.Timestamp, 0)
+	var t time.Time
+
+	if req.Timestamp == nil {
+		t = time.Now().UTC()
+	} else {
+		t = time.Unix(*req.Timestamp, 0)
+	}
 
 	lookAngles := sat.LookAngles(t, satellite.ObserverCoords{
 		Lon: req.Lon,
@@ -109,6 +116,46 @@ func LookAngles(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Errorf("error marshalling coords: %w", err).Error()))
+		return
+	}
+
+	w.Write(res)
+}
+
+func VisibleTimeRange(w http.ResponseWriter, r *http.Request) {
+	var req VisibleTimeRangeRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("ошибка декодирования запроса: %w", err).Error()))
+		return
+	}
+
+	sat := satellite.New(req.Line1, req.Line2, req.SatName)
+
+	var t time.Time
+
+	if req.Timestamp == nil {
+		t = time.Now().UTC()
+	} else {
+		t = time.Unix(*req.Timestamp, 0)
+	}
+
+	countOfTimeRanges := 1
+	if req.CountOfTimeRanges != nil {
+		countOfTimeRanges = *req.CountOfTimeRanges
+	}
+
+	timeRanges := sat.VisibleTimeRange(t, satellite.ObserverCoords{
+		Lon: req.Lon,
+		Lat: req.Lat,
+		Alt: req.Alt,
+	}, countOfTimeRanges)
+
+	res, err := json.Marshal(timeRanges)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("error marshalling time ranges: %w", err).Error()))
 		return
 	}
 

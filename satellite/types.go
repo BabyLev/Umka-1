@@ -1,6 +1,10 @@
 package satellite
 
-import "github.com/joshuaferrara/go-satellite"
+import (
+	"time"
+
+	"github.com/joshuaferrara/go-satellite"
+)
 
 type Satellite struct {
 	line1 string
@@ -28,4 +32,10 @@ type ObserverCoords struct {
 	Lon float64
 	Lat float64
 	Alt float64
+}
+
+type TimeRange struct {
+	From       time.Time `json:"from"`
+	To         time.Time `json:"to"`
+	Difference string    `json:"difference"`
 }
