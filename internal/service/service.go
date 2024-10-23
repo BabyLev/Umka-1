@@ -161,3 +161,15 @@ func VisibleTimeRange(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(res)
 }
+
+func AddSatellite(w http.ResponseWriter, r *http.Request) {
+	var req AddSatelliteRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("ошибка декодирования запроса: %w", err).Error()))
+		return
+	}
+
+}

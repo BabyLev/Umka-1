@@ -22,3 +22,9 @@ type VisibleTimeRangeRequest struct {
 	Alt               float64 `json:"alt"` // км
 	CountOfTimeRanges *int    `json:"countOfTimeRanges"`
 }
+
+type AddSatelliteRequest struct {
+	Line1 string `json:"line1"`
+	Line2 string `json:"line2"`
+	Name  string `json:"name"`
+}

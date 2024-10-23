@@ -14,6 +14,11 @@ type Satellite struct {
 	sat *satellite.Satellite
 }
 
+// Getter: Name
+func (s *Satellite) GetName() string {
+	return s.name
+}
+
 type SatelliteCoords struct {
 	Lat          float64 `json:"lat"`
 	Lon          float64 `json:"lon"`

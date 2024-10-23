@@ -89,6 +89,7 @@ func (s Satellite) VisibleTimeRange(t time.Time, obsCoords ObserverCoords, n int
 		var timeRange TimeRange
 
 		var prevEl float64
+
 		for {
 			lookAngles := s.LookAngles(tCalc, obsCoords)
 
@@ -105,13 +106,11 @@ func (s Satellite) VisibleTimeRange(t time.Time, obsCoords ObserverCoords, n int
 			}
 
 			prevEl = lookAngles.El
-			tCalc = tCalc.Add(time.Second)
 
 			if t.Add(time.Hour * 24 * 5).Before(tCalc) {
 				break
 			}
 		}
-
 	}
 
 	return timeRangeList
