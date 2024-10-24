@@ -28,3 +28,7 @@ type AddSatelliteRequest struct {
 	Line2 string `json:"line2"`
 	Name  string `json:"name"`
 }
+
+type AddSatelliteResponse struct {
+	ID int64 `json:"id"`
+}

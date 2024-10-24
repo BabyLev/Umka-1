@@ -7,34 +7,26 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BabyLev/Umka-1/internal/storage"
 	"github.com/BabyLev/Umka-1/satellite"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 )
 
-func SetupRouter() *chi.Mux {
-	router := chi.NewRouter()
+type Service struct {
+	Storage *storage.Storage
+}
 
-	router.Use(middleware.Recoverer)
-	router.Use(middleware.Logger)
-
-	// routes // маршруты
-	// маршрут для главной страницы
-	router.Get("/", MainPage) // "/" - path, root path // корневой путь
-
-	router.Get("/calculate/", Calculate)
-	router.Post("/look-angles/", LookAngles)
-	router.Post("/time-ranges/", VisibleTimeRange)
-
-	return router
+func New(storage *storage.Storage) *Service {
+	return &Service{
+		Storage: storage,
+	}
 }
 
 // ручка для обработки главной страницы
-func MainPage(w http.ResponseWriter, r *http.Request) {
+func (s *Service) MainPage(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("hello, world"))
 }
 
-func Calculate(w http.ResponseWriter, r *http.Request) {
+func (s *Service) Calculate(w http.ResponseWriter, r *http.Request) {
 	urlValues := r.URL.Query()
 
 	line1 := urlValues.Get("line1")
@@ -87,7 +79,7 @@ func Calculate(w http.ResponseWriter, r *http.Request) {
 //	    "lon": 37.51934842793972,
 //	    "alt": 0.151
 //	}
-func LookAngles(w http.ResponseWriter, r *http.Request) {
+func (s *Service) LookAngles(w http.ResponseWriter, r *http.Request) {
 	var req LookAnglesRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -122,7 +114,7 @@ func LookAngles(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-func VisibleTimeRange(w http.ResponseWriter, r *http.Request) {
+func (s *Service) VisibleTimeRange(w http.ResponseWriter, r *http.Request) {
 	var req VisibleTimeRangeRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -162,7 +154,7 @@ func VisibleTimeRange(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-func AddSatellite(w http.ResponseWriter, r *http.Request) {
+func (s *Service) AddSatellite(w http.ResponseWriter, r *http.Request) {
 	var req AddSatelliteRequest
 
 	err := json.NewDecoder(r.Body).Decode(&req)
@@ -172,4 +164,20 @@ func AddSatellite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sat := satellite.New(req.Line1, req.Line2, req.Name)
+
+	satID := s.Storage.AddSatellite(sat)
+
+	res := AddSatelliteResponse{
+		ID: int64(satID),
+	}
+
+	resJSON, err := json.Marshal(res)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("error marshalling: %w", err).Error()))
+		return
+	}
+
+	w.Write(resJSON)
 }
