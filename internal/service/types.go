@@ -32,3 +32,22 @@ type AddSatelliteRequest struct {
 type AddSatelliteResponse struct {
 	ID int64 `json:"id"`
 }
+
+type FindSatelliteRequest struct {
+	Name string `json:"name"`
+}
+
+type FindSatelliteResponse struct {
+	Satellites map[int]Satellite `json:"satellites"` // int - id cпутника
+}
+
+type UpdateSatelliteRequest struct {
+	Satellite Satellite `json:"satellite"`
+	ID        int       `json:"id"`
+}
+
+type Satellite struct {
+	Line1 string `json:"line1"`
+	Line2 string `json:"line2"`
+	Name  string `json:"name"`
+}

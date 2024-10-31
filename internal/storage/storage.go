@@ -11,36 +11,56 @@ import (
 // информацию храним в памяти (то есть, до окончания работы программы)
 
 type Storage struct {
-	Satellites []satellite.Satellite
+	Satellites map[int]satellite.Satellite
+	LastSatID  int
 	// SatellitesIndex map[string]int // key - name of sat, value - index in Satellites slice
 	Locations []satellite.LookAngles
 }
 
+// type SatellitesID struct {
+// 	ID int
+// }
+
 func New() *Storage {
-	return &Storage{}
+	sat := make(map[int]satellite.Satellite)
+
+	return &Storage{
+		Satellites: sat,
+	}
 }
 
 // функция вернет индекс в слайсе, под которым сохранен новый добавленный спутник
 func (s *Storage) AddSatellite(sat satellite.Satellite) int {
-	s.Satellites = append(s.Satellites, sat)
+	s.LastSatID++
+	s.Satellites[s.LastSatID] = sat
 
-	return len(s.Satellites) - 1
+	return s.LastSatID
 }
 
-func (s *Storage) GetSatellite(num int) (satellite.Satellite, error) {
-	if num < 0 || num > len(s.Satellites)-1 {
+func (s *Storage) GetSatellite(id int) (satellite.Satellite, error) {
+	if _, ok := s.Satellites[id]; !ok {
 		return satellite.Satellite{}, fmt.Errorf("нет спутника под таким ID")
 	}
 
-	return s.Satellites[num], nil
+	return s.Satellites[id], nil
 }
 
-func (s *Storage) DeleteSatellite(num int) error {
-	if num < 0 || num > len(s.Satellites)-1 {
+func (s *Storage) DeleteSatellite(id int) error {
+	if _, ok := s.Satellites[id]; !ok {
 		return fmt.Errorf("нет спутника под таким ID")
 	}
 
-	s.Satellites = append(s.Satellites[:num], s.Satellites[num+1:]...)
+	delete(s.Satellites, id)
+
+	return nil
+}
+
+func (s *Storage) UpdateSatellite(id int, sat satellite.Satellite) error {
+	if _, ok := s.Satellites[id]; !ok {
+		return fmt.Errorf("нет спутника под таким ID")
+	}
+
+	s.Satellites[id] = sat
 
 	return nil
 }

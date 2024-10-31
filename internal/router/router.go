@@ -20,6 +20,10 @@ func SetupRouter(service *service.Service) *chi.Mux {
 	router.Post("/look-angles/", service.LookAngles)
 	router.Post("/time-ranges/", service.VisibleTimeRange)
 	router.Put("/satellite/", service.AddSatellite)
-
+	router.Delete("/satellite/{id}", service.DeleteSatellite)
+	router.Post("/satellite/", service.FindSatellite)
+	router.Get("/satellite/{id}", service.GetSatellite)
+	router.Patch("/satellite/", service.UpdateSatellite)
+	// "/satellite/{id}"
 	return router
 }

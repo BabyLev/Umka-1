@@ -19,6 +19,16 @@ func (s *Satellite) GetName() string {
 	return s.name
 }
 
+// Getter: Line1
+func (s *Satellite) GetLine1() string {
+	return s.line1
+}
+
+// Getter: Line2
+func (s *Satellite) GetLine2() string {
+	return s.line2
+}
+
 type SatelliteCoords struct {
 	Lat          float64 `json:"lat"`
 	Lon          float64 `json:"lon"`
