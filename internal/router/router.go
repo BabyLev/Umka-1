@@ -16,14 +16,14 @@ func SetupRouter(service *service.Service) *chi.Mux {
 	// маршрут для главной страницы
 	router.Get("/", service.MainPage) // "/" - path, root path // корневой путь
 
-	router.Get("/calculate/", service.Calculate)
-	router.Post("/look-angles/", service.LookAngles)
-	router.Post("/time-ranges/", service.VisibleTimeRange)
-	router.Put("/satellite/", service.AddSatellite)
-	router.Delete("/satellite/{id}", service.DeleteSatellite)
-	router.Post("/satellite/", service.FindSatellite)
-	router.Get("/satellite/{id}", service.GetSatellite)
-	router.Patch("/satellite/", service.UpdateSatellite)
+	router.Get("/calculate/", service.Calculate)              // возвращает длину, широту, долготу, адрес спутника на карте
+	router.Post("/look-angles/", service.LookAngles)          // возвращает азимут, элевацию, диапазон спутника
+	router.Post("/time-ranges/", service.VisibleTimeRange)    // высчитывает временные диапазоны, когда видно спутник над заданной точкой в нужном количестве
+	router.Put("/satellite/", service.AddSatellite)           // добавляет преданный спутник в хранилище и возращает его ID
+	router.Delete("/satellite/{id}", service.DeleteSatellite) // удаляет спутник из хранилища по ID
+	router.Post("/satellite/", service.FindSatellite)         // возвращает все спутники по переданному имени
+	router.Get("/satellite/{id}", service.GetSatellite)       // возвращает спутник по переданному ID
+	router.Patch("/satellite/", service.UpdateSatellite)      // принимает ID и новые данные спутника. Изменяет старые переменные на новые
 	// "/satellite/{id}"
 	return router
 }
