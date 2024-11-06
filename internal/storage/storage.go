@@ -24,9 +24,11 @@ type Storage struct {
 func New() *Storage {
 	sat := make(map[int]satellite.Satellite)
 
-	return &Storage{
+	storage := Storage{
 		Satellites: sat,
 	}
+
+	return &storage
 }
 
 // функция вернет индекс в слайсе, под которым сохранен новый добавленный спутник

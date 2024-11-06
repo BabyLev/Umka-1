@@ -16,7 +16,7 @@ func SetupRouter(service *service.Service) *chi.Mux {
 	// маршрут для главной страницы
 	router.Get("/", service.MainPage) // "/" - path, root path // корневой путь
 
-	router.Get("/calculate/", service.Calculate)              // возвращает длину, широту, долготу, адрес спутника на карте
+	router.Post("/calculate/", service.Calculate)             // возвращает длину, широту, долготу, адрес спутника на карте
 	router.Post("/look-angles/", service.LookAngles)          // возвращает азимут, элевацию, диапазон спутника
 	router.Post("/time-ranges/", service.VisibleTimeRange)    // высчитывает временные диапазоны, когда видно спутник над заданной точкой в нужном количестве
 	router.Put("/satellite/", service.AddSatellite)           // добавляет преданный спутник в хранилище и возращает его ID

@@ -1,10 +1,13 @@
 package service
 
+type CalculateRequest struct {
+	SatelliteID int64  `json:"satelliteId"`
+	Timestamp   *int64 `json:"timestamp"`
+}
+
 type LookAnglesRequest struct {
-	Line1     string `json:"line1"`
-	Line2     string `json:"line2"`
-	SatName   string `json:"satName"`
-	Timestamp *int64 `json:"timestamp"`
+	SatelliteID int64  `json:"satelliteId"`
+	Timestamp   *int64 `json:"timestamp"`
 	// Координаты наблюдателя
 	Lon float64 `json:"lat"`
 	Lat float64 `json:"lon"`
