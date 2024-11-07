@@ -44,9 +44,9 @@ type LookAngles struct {
 }
 
 type ObserverCoords struct {
-	Lon float64
-	Lat float64
-	Alt float64
+	Lon float64 // долгота
+	Lat float64 // широта
+	Alt float64 // высота
 }
 
 type TimeRange struct {

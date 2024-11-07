@@ -103,11 +103,14 @@ func (s *Service) LookAngles(w http.ResponseWriter, r *http.Request) {
 		t = time.Unix(*req.Timestamp, 0)
 	}
 
-	lookAngles := sat.LookAngles(t, satellite.ObserverCoords{
-		Lon: req.Lon,
-		Lat: req.Lat,
-		Alt: req.Alt,
-	})
+	observerPosition, err := s.Storage.GetLocation(int(req.ObserverPositionID))
+	if err != nil {
+		w.WriteHeader(400)
+		w.Write([]byte(fmt.Errorf("s.Storage.GetLocation: %w", err).Error()))
+		return
+	}
+
+	lookAngles := sat.LookAngles(t, observerPosition)
 
 	res, err := json.Marshal(lookAngles)
 	if err != nil {
@@ -128,7 +131,12 @@ func (s *Service) VisibleTimeRange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sat := satellite.New(req.Line1, req.Line2, req.SatName)
+	sat, err := s.Storage.GetSatellite(int(req.SatelliteID))
+	if err != nil {
+		w.WriteHeader(400)
+		w.Write([]byte(fmt.Errorf("s.Storage.GetSatellite: %w", err).Error()))
+		return
+	}
 
 	var t time.Time
 
