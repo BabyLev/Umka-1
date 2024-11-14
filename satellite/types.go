@@ -9,14 +9,8 @@ import (
 type Satellite struct {
 	line1 string
 	line2 string
-	name  string
 
 	sat *satellite.Satellite
-}
-
-// Getter: Name
-func (s *Satellite) GetName() string {
-	return s.name
 }
 
 // Getter: Line1
@@ -30,11 +24,10 @@ func (s *Satellite) GetLine2() string {
 }
 
 type SatelliteCoords struct {
-	Lat          float64 `json:"lat"`
-	Lon          float64 `json:"lon"`
-	Alt          float64 `json:"alt"`
-	GMapsLink    string  `json:"gmapsLink"`
-	AnotherField string  `json:"-"`
+	Lat       float64 `json:"lat"`
+	Lon       float64 `json:"lon"`
+	Alt       float64 `json:"alt"`
+	GMapsLink string  `json:"gmapsLink"`
 }
 
 type LookAngles struct {

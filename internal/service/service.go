@@ -7,18 +7,22 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BabyLev/Umka-1/internal/clients/r4uab"
 	"github.com/BabyLev/Umka-1/internal/storage"
+	"github.com/BabyLev/Umka-1/internal/types"
 	"github.com/BabyLev/Umka-1/satellite"
 	"github.com/go-chi/chi/v5"
 )
 
 type Service struct {
-	Storage *storage.Storage
+	Storage     *storage.Storage
+	r4uabClient *r4uab.Client
 }
 
-func New(storage *storage.Storage) *Service {
+func New(storage *storage.Storage, r *r4uab.Client) *Service {
 	return &Service{
-		Storage: storage,
+		Storage:     storage,
+		r4uabClient: r,
 	}
 }
 
@@ -217,7 +221,7 @@ func (s *Service) FindSatellite(w http.ResponseWriter, r *http.Request) {
 		satellite := Satellite{
 			Line1: s.GetLine1(),
 			Line2: s.GetLine2(),
-			Name:  s.GetName(),
+			Name:  s.Name,
 		}
 		res.Satellites[k] = satellite
 	}
@@ -252,7 +256,7 @@ func (s *Service) GetSatellite(w http.ResponseWriter, r *http.Request) {
 
 	res.Line1 = sat.GetLine1()
 	res.Line2 = sat.GetLine2()
-	res.Name = sat.GetName()
+	res.Name = sat.Name
 
 	resJSON, err := json.Marshal(res)
 	if err != nil {
@@ -274,8 +278,19 @@ func (s *Service) UpdateSatellite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sat := satellite.New(req.Satellite.Line1, req.Satellite.Line2, req.Satellite.Name)
-	err = s.Storage.UpdateSatellite(req.ID, sat)
+	if req.Satellite == nil {
+		w.Write([]byte(fmt.Errorf("спутник не передан: %w", err).Error()))
+		return
+	}
+
+	sat := satellite.New(req.Satellite.Line1, req.Satellite.Line2)
+
+	// TODO: update не должен менять norad id
+	// если не было - поставить, в ином случае игнорировать
+	err = s.Storage.UpdateSatellite(req.ID, types.Satellite{
+		Satellite: sat,
+		Name:      req.Satellite.Name,
+	})
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Errorf("s.Storage.UpdateSatellite: %w", err).Error()))
@@ -295,9 +310,14 @@ func (s *Service) AddSatellite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sat := satellite.New(req.Line1, req.Line2, req.Name)
+	// TODO: получать линию 1 и линию 2 по апи, если передан норад
+	sat := satellite.New(req.Line1, req.Line2)
 
-	satID := s.Storage.AddSatellite(sat)
+	satID := s.Storage.AddSatellite(types.Satellite{
+		Satellite: sat,
+		Name:      req.Name,
+		NoradID:   req.NoradID,
+	})
 
 	res := AddSatelliteResponse{
 		ID: int64(satID),

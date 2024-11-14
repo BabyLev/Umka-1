@@ -26,9 +26,7 @@ type VisibleTimeRangeRequest struct {
 }
 
 type AddSatelliteRequest struct {
-	Line1 string `json:"line1"`
-	Line2 string `json:"line2"`
-	Name  string `json:"name"`
+	Satellite
 }
 
 type AddSatelliteResponse struct {
@@ -44,12 +42,13 @@ type FindSatelliteResponse struct {
 }
 
 type UpdateSatelliteRequest struct {
-	Satellite Satellite `json:"satellite"`
-	ID        int       `json:"id"`
+	Satellite *Satellite `json:"satellite"`
+	ID        int        `json:"id"`
 }
 
 type Satellite struct {
-	Line1 string `json:"line1"`
-	Line2 string `json:"line2"`
-	Name  string `json:"name"`
+	Line1   string `json:"line1"`
+	Line2   string `json:"line2"`
+	Name    string `json:"name"`
+	NoradID *int   `json:"noradId"`
 }

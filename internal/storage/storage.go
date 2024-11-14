@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/BabyLev/Umka-1/internal/types"
 	"github.com/BabyLev/Umka-1/satellite"
 )
 
@@ -11,7 +12,7 @@ import (
 // информацию храним в памяти (то есть, до окончания работы программы)
 
 type Storage struct {
-	satellites map[int]satellite.Satellite
+	satellites map[int]types.Satellite
 	lastSatID  int
 	locations  map[int]satellite.ObserverCoords
 	lastLocID  int
@@ -22,7 +23,7 @@ type Storage struct {
 // }
 
 func New() *Storage {
-	sat := make(map[int]satellite.Satellite)
+	sat := make(map[int]types.Satellite)
 	loc := make(map[int]satellite.ObserverCoords)
 	storage := Storage{
 		satellites: sat,
@@ -33,16 +34,16 @@ func New() *Storage {
 }
 
 // функция вернет индекс в слайсе, под которым сохранен новый добавленный спутник
-func (s *Storage) AddSatellite(sat satellite.Satellite) int {
+func (s *Storage) AddSatellite(sat types.Satellite) int {
 	s.lastSatID++
 	s.satellites[s.lastSatID] = sat
 
 	return s.lastSatID
 }
 
-func (s *Storage) GetSatellite(id int) (satellite.Satellite, error) {
+func (s *Storage) GetSatellite(id int) (types.Satellite, error) {
 	if _, ok := s.satellites[id]; !ok {
-		return satellite.Satellite{}, fmt.Errorf("нет спутника под таким ID")
+		return types.Satellite{}, fmt.Errorf("нет спутника под таким ID")
 	}
 
 	return s.satellites[id], nil
@@ -58,7 +59,7 @@ func (s *Storage) DeleteSatellite(id int) error {
 	return nil
 }
 
-func (s *Storage) UpdateSatellite(id int, sat satellite.Satellite) error {
+func (s *Storage) UpdateSatellite(id int, sat types.Satellite) error {
 	if _, ok := s.satellites[id]; !ok {
 		return fmt.Errorf("нет спутника под таким ID")
 	}
@@ -70,11 +71,11 @@ func (s *Storage) UpdateSatellite(id int, sat satellite.Satellite) error {
 
 // FindSatellite(name string) (satellite., error)
 // for ex: sat name = umka, input name - um
-func (s *Storage) FindSatellite(name string) map[int]satellite.Satellite {
-	satellites := make(map[int]satellite.Satellite, 0)
+func (s *Storage) FindSatellite(name string) map[int]types.Satellite {
+	satellites := make(map[int]types.Satellite, 0)
 
 	for i, sat := range s.satellites {
-		if strings.Contains(sat.GetName(), name) {
+		if strings.Contains(sat.Name, name) {
 			satellites[i] = sat
 		}
 	}

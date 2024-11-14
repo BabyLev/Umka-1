@@ -9,13 +9,12 @@ import (
 	"github.com/joshuaferrara/go-satellite"
 )
 
-func New(line1 string, line2 string, name string) Satellite {
+func New(line1 string, line2 string) Satellite {
 	sat := satellite.TLEToSat(line1, line2, satellite.GravityWGS84)
 
 	return Satellite{
 		line1: line1,
 		line2: line2,
-		name:  name,
 		sat:   &sat,
 	}
 }

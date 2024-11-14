@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/BabyLev/Umka-1/internal/clients/r4uab"
 	"github.com/BabyLev/Umka-1/internal/router"
 	"github.com/BabyLev/Umka-1/internal/service"
 	"github.com/BabyLev/Umka-1/internal/storage"
@@ -12,7 +13,9 @@ import (
 
 func main() {
 	storage := storage.New()
-	service := service.New(storage)
+
+	r4uabClient := r4uab.New("https://api.r4uab.ru")
+	service := service.New(storage, r4uabClient)
 	router := router.SetupRouter(service)
 
 	fmt.Println("Server running on localhost:8080")
