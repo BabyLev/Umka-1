@@ -1,5 +1,7 @@
 package service
 
+import "github.com/BabyLev/Umka-1/internal/types"
+
 type CalculateRequest struct {
 	SatelliteID int64  `json:"satelliteId"` // id спутника из хранилища
 	Timestamp   *int64 `json:"timestamp"`
@@ -48,4 +50,12 @@ type Satellite struct {
 	Line2   string `json:"line2"`
 	Name    string `json:"name"`
 	NoradID *int   `json:"noradId"`
+}
+
+type AddLocationRequest struct {
+	types.ObserverLocation
+}
+
+type AddLocationResponse struct {
+	ID int `json:"observerLocationId"`
 }

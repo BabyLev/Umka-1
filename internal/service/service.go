@@ -369,3 +369,29 @@ func (s *Service) AddSatellite(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(resJSON)
 }
+
+func (s *Service) AddLocation(w http.ResponseWriter, r *http.Request) {
+	var req AddLocationRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("ошибка декодирования запроса: %w", err).Error()))
+		return
+	}
+
+	locID := s.Storage.AddLocation(req.ObserverLocation)
+
+	res := AddLocationResponse{
+		ID: locID,
+	}
+
+	resJSON, err := json.Marshal(res)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("error marshalling: %w", err).Error()))
+		return
+	}
+
+	w.Write(resJSON)
+}
