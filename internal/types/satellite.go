@@ -8,3 +8,15 @@ type Satellite struct {
 	Name    string
 	NoradID *int
 }
+
+// координаты наблюдателя
+type ObserverLocation struct {
+	Name     string   `json:"name"`
+	Location Location `json:"location"`
+}
+
+type Location struct {
+	Lon float64 `json:"lon"` // долгота
+	Lat float64 `json:"lat"` // широта
+	Alt float64 `json:"alt"` // высота
+}

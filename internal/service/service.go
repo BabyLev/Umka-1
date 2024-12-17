@@ -107,14 +107,20 @@ func (s *Service) LookAngles(w http.ResponseWriter, r *http.Request) {
 		t = time.Unix(*req.Timestamp, 0)
 	}
 
-	observerPosition, err := s.Storage.GetLocation(int(req.ObserverPositionID))
+	obsLoc, err := s.Storage.GetLocation(int(req.ObserverPositionID))
 	if err != nil {
 		w.WriteHeader(400)
 		w.Write([]byte(fmt.Errorf("s.Storage.GetLocation: %w", err).Error()))
 		return
 	}
 
-	lookAngles := sat.LookAngles(t, observerPosition)
+	coords := satellite.ObserverCoords{
+		Lon: obsLoc.Location.Lon,
+		Lat: obsLoc.Location.Lat,
+		Alt: obsLoc.Location.Alt,
+	}
+
+	lookAngles := sat.LookAngles(t, coords)
 
 	res, err := json.Marshal(lookAngles)
 	if err != nil {
@@ -212,9 +218,6 @@ func (s *Service) FindSatellite(w http.ResponseWriter, r *http.Request) {
 
 	var res FindSatelliteResponse
 
-	// mapping: преобразование одного типа данных в другой
-	// задача сделать из map[int]satellite.Satellite -> map[int]Satellite
-
 	res.Satellites = make(map[int]Satellite, len(sats))
 
 	for k, s := range sats {
@@ -278,23 +281,45 @@ func (s *Service) UpdateSatellite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Satellite == nil {
-		w.Write([]byte(fmt.Errorf("спутник не передан: %w", err).Error()))
-		return
+	var sat satellite.Satellite
+
+	if req.Satellite.NoradID == nil {
+		sat = satellite.New(req.Satellite.Line1, req.Satellite.Line2)
+	} else {
+		updatedSatInfo, err := s.r4uabClient.GetSatelliteInfo(r.Context(), *req.Satellite.NoradID)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(fmt.Errorf("r4uabClient.GetSatelliteInfo: %w", err).Error()))
+			return
+		}
+
+		sat = satellite.New(updatedSatInfo.Line1, updatedSatInfo.Line2)
 	}
 
-	sat := satellite.New(req.Satellite.Line1, req.Satellite.Line2)
-
-	// TODO: update не должен менять norad id
-	// если не было - поставить, в ином случае игнорировать
-	err = s.Storage.UpdateSatellite(req.ID, types.Satellite{
-		Satellite: sat,
-		Name:      req.Satellite.Name,
-	})
-	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(fmt.Errorf("s.Storage.UpdateSatellite: %w", err).Error()))
-		return
+	// надо проверить, передал ли клиент в запросе norad id.
+	// если передал, то перезаписываем в структуре нужного спутника в хранилище
+	if req.Satellite.NoradID == nil {
+		err = s.Storage.UpdateSatellite(req.SatelliteID, types.Satellite{
+			Satellite: sat,
+			Name:      req.Satellite.Name,
+			NoradID:   nil,
+		})
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(fmt.Errorf("s.Storage.UpdateSatellite: %w", err).Error()))
+			return
+		}
+	} else {
+		err = s.Storage.UpdateSatellite(req.SatelliteID, types.Satellite{
+			Satellite: sat,
+			Name:      req.Satellite.Name,
+			NoradID:   req.Satellite.NoradID,
+		})
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(fmt.Errorf("s.Storage.UpdateSatellite: %w", err).Error()))
+			return
+		}
 	}
 
 	w.WriteHeader(200)
@@ -310,8 +335,20 @@ func (s *Service) AddSatellite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: получать линию 1 и линию 2 по апи, если передан норад
-	sat := satellite.New(req.Line1, req.Line2)
+	var sat satellite.Satellite
+
+	if req.NoradID == nil {
+		sat = satellite.New(req.Line1, req.Line2)
+	} else {
+		updatedSatInfo, err := s.r4uabClient.GetSatelliteInfo(r.Context(), *req.NoradID)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(fmt.Errorf("r4uabClient.GetSatelliteInfo: %w", err).Error()))
+			return
+		}
+
+		sat = satellite.New(updatedSatInfo.Line1, updatedSatInfo.Line2)
+	}
 
 	satID := s.Storage.AddSatellite(types.Satellite{
 		Satellite: sat,
@@ -320,7 +357,7 @@ func (s *Service) AddSatellite(w http.ResponseWriter, r *http.Request) {
 	})
 
 	res := AddSatelliteResponse{
-		ID: int64(satID),
+		SatelliteID: int64(satID),
 	}
 
 	resJSON, err := json.Marshal(res)

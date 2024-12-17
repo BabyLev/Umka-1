@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/BabyLev/Umka-1/internal/types"
-	"github.com/BabyLev/Umka-1/satellite"
 )
 
 // пакет нужен для хранения информации о спутниках (и не только)
@@ -14,7 +13,7 @@ import (
 type Storage struct {
 	satellites map[int]types.Satellite
 	lastSatID  int
-	locations  map[int]satellite.ObserverCoords
+	locations  map[int]types.ObserverLocation
 	lastLocID  int
 }
 
@@ -24,7 +23,7 @@ type Storage struct {
 
 func New() *Storage {
 	sat := make(map[int]types.Satellite)
-	loc := make(map[int]satellite.ObserverCoords)
+	loc := make(map[int]types.ObserverLocation)
 	storage := Storage{
 		satellites: sat,
 		locations:  loc,
@@ -83,18 +82,56 @@ func (s *Storage) FindSatellite(name string) map[int]types.Satellite {
 	return satellites
 }
 
-func (s *Storage) GetLocation(ID int) (satellite.ObserverCoords, error) {
+func (s *Storage) GetLocation(ID int) (types.ObserverLocation, error) {
 	loc, ok := s.locations[ID]
 	if !ok {
-		return satellite.ObserverCoords{}, fmt.Errorf("нет локации под таким ID")
+		return types.ObserverLocation{}, fmt.Errorf("нет локации под таким ID")
 	}
 
 	return loc, nil
 }
 
-func (s *Storage) AddLocation(loc satellite.ObserverCoords) int {
+func (s *Storage) AddLocation(loc types.ObserverLocation) int {
 	s.lastLocID++
 	s.locations[s.lastLocID] = loc
 
 	return s.lastLocID
+}
+
+// TODO: Delete, Find, Update
+
+func (s *Storage) DeleteLocation(ID int) error {
+	_, ok := s.locations[ID]
+	if !ok {
+		return fmt.Errorf("нет локации под таким ID")
+	}
+
+	delete(s.locations, ID)
+
+	return nil
+}
+
+func (s *Storage) FindLocation(name string) (map[int]types.ObserverLocation, error) {
+	locals := make(map[int]types.ObserverLocation, 0)
+
+	name = strings.ToLower(name)
+
+	for k, v := range s.locations {
+		if strings.Contains(strings.ToLower(v.Name), name) {
+			locals[k] = v
+		}
+	}
+
+	return locals, nil
+}
+
+func (s *Storage) UpdateLocation(ID int, loc types.ObserverLocation) error {
+	_, ok := s.locations[ID]
+	if !ok {
+		return fmt.Errorf("нет локации под таким ID")
+	}
+
+	s.locations[ID] = loc
+
+	return nil
 }

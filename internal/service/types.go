@@ -1,22 +1,19 @@
 package service
 
 type CalculateRequest struct {
-	SatelliteID int64  `json:"satelliteId"`
+	SatelliteID int64  `json:"satelliteId"` // id спутника из хранилища
 	Timestamp   *int64 `json:"timestamp"`
 }
 
 type LookAnglesRequest struct {
-	SatelliteID int64  `json:"satelliteId"`
+	SatelliteID int64  `json:"satelliteId"` // id спутника из хранилища
 	Timestamp   *int64 `json:"timestamp"`
 	// Координаты наблюдателя
 	ObserverPositionID int64 `json:"observerPositionId"`
-	// 	Lon float64 `json:"lat"`
-	// 	Lat float64 `json:"lon"`
-	// 	Alt float64 `json:"alt"` // км
 }
 
 type VisibleTimeRangeRequest struct {
-	SatelliteID int64  `json:"satelliteId"`
+	SatelliteID int64  `json:"satelliteId"` // id спутника из хранилища
 	Timestamp   *int64 `json:"timestamp"`
 	// Координаты наблюдателя
 	Lon               float64 `json:"lat"`
@@ -30,7 +27,7 @@ type AddSatelliteRequest struct {
 }
 
 type AddSatelliteResponse struct {
-	ID int64 `json:"id"`
+	SatelliteID int64 `json:"satelliteId"`
 }
 
 type FindSatelliteRequest struct {
@@ -38,12 +35,12 @@ type FindSatelliteRequest struct {
 }
 
 type FindSatelliteResponse struct {
-	Satellites map[int]Satellite `json:"satellites"` // int - id cпутника
+	Satellites map[int]Satellite `json:"satellites"` // int - id cпутника в хранилище
 }
 
 type UpdateSatelliteRequest struct {
-	Satellite *Satellite `json:"satellite"`
-	ID        int        `json:"id"`
+	Satellite   Satellite `json:"satellite"`
+	SatelliteID int       `json:"satelliteId"` // id спутника в хранилище
 }
 
 type Satellite struct {
