@@ -395,3 +395,74 @@ func (s *Service) AddLocation(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(resJSON)
 }
+
+func (s *Service) DeleteLocation(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id") // "123"
+
+	if i, err := strconv.Atoi(id); err == nil {
+		err := s.Storage.DeleteLocation(i)
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(fmt.Errorf("s.Storage.DeleteLocation: %w", err).Error()))
+			return
+		}
+	} else {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("не удалось преобразовать ID к целому числу: %w", err).Error()))
+		return
+	}
+
+	w.WriteHeader(200)
+	w.Write([]byte(fmt.Sprintf("локация успешно удалилась id = %s", id)))
+}
+
+func (s *Service) FindLocation(w http.ResponseWriter, r *http.Request) {
+	var req FindLocationRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("ошибка декодирования запроса: %w", err).Error()))
+		return
+	}
+
+	locs, err := s.Storage.FindLocation(req.Name)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("s.Storage.FindLocation: %w", err).Error()))
+		return
+	}
+
+	res := FindLocationResponse{
+		Locations: locs,
+	}
+
+	resJSON, err := json.Marshal(res)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("error marshalling: %w", err).Error()))
+		return
+	}
+
+	w.Write(resJSON)
+}
+
+func (s *Service) UpdateLocation(w http.ResponseWriter, r *http.Request) {
+	var req UpdateLocationRequest
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("ошибка декодирования запроса: %w", err).Error()))
+		return
+	}
+
+	err = s.Storage.UpdateLocation(req.LocationID, req.Location)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("s.Storage.UpdateLocation: %w", err).Error()))
+		return
+	}
+
+	w.WriteHeader(200)
+}

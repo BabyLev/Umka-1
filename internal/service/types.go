@@ -59,3 +59,16 @@ type AddLocationRequest struct {
 type AddLocationResponse struct {
 	ID int `json:"observerLocationId"`
 }
+
+type FindLocationRequest struct {
+	Name string `json:"name"`
+}
+
+type FindLocationResponse struct {
+	Locations map[int]types.ObserverLocation `json:"locations"`
+}
+
+type UpdateLocationRequest struct {
+	Location   types.ObserverLocation `json:"location"`
+	LocationID int                    `json:"locationId"`
+}
