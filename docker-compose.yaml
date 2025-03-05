@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  umka:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    #        environment:
+    ports:
+      - 8080:8080 # первый (до двоеточия) порт - это хост, второй порт - внутри контейнера
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: cocacola
+      POSTGRES_DB: umka
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

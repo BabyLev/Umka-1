@@ -9,6 +9,7 @@ import (
 
 // пакет нужен для хранения информации о спутниках (и не только)
 // информацию храним в памяти (то есть, до окончания работы программы)
+// CRUD - Create/Read/Update/Delete
 
 type Storage struct {
 	satellites map[int]types.Satellite
