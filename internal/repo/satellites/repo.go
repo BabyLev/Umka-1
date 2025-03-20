@@ -18,25 +18,24 @@ func New(conn *pgx.Conn) *Repo {
 }
 
 // CRUD Satellites
-func (r *Repo) CreateSatellite(ctx context.Context, sat Satellite) error {
+func (r *Repo) CreateSatellite(ctx context.Context, sat Satellite) (int, error) {
 	query := `
 	insert into satellites
 	 (sat_name, norad_id, line1, line2) 
-	 values ($1, $2, $3, $4)
+	 values ($1, $2, $3, $4) returning id;
 	 `
 
-	_, err := r.conn.Exec(ctx, query, sat.SatName, sat.NoradID, sat.Line1, sat.Line2)
-	if err != nil {
-		return err
-	}
+	row := r.conn.QueryRow(ctx, query, sat.SatName, sat.NoradID, sat.Line1, sat.Line2)
+	var id int
+	err := row.Scan(&id)
 
-	return nil
+	return id, err
 }
 
 func (r *Repo) GetSatellite(ctx context.Context, id int) (Satellite, error) {
 	sat := Satellite{}
 
-	err := r.conn.QueryRow(ctx, "select * from satellites where id=$1", id).Scan(&sat)
+	err := r.conn.QueryRow(ctx, "select id, sat_name, norad_id, line1, line2 from satellites where id=$1", id).Scan(&sat.ID, &sat.SatName, &sat.NoradID, &sat.Line1, &sat.Line2)
 	if err != nil {
 		return Satellite{}, err
 	}

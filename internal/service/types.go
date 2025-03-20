@@ -18,8 +18,8 @@ type VisibleTimeRangeRequest struct {
 	SatelliteID int64  `json:"satelliteId"` // id спутника из хранилища
 	Timestamp   *int64 `json:"timestamp"`
 	// Координаты наблюдателя
-	Lon               float64 `json:"lat"`
-	Lat               float64 `json:"lon"`
+	Lon               float64 `json:"lon"`
+	Lat               float64 `json:"lat"`
 	Alt               float64 `json:"alt"` // км
 	CountOfTimeRanges *int    `json:"countOfTimeRanges"`
 }
@@ -33,7 +33,9 @@ type AddSatelliteResponse struct {
 }
 
 type FindSatelliteRequest struct {
-	Name string `json:"name"`
+	IDs      []int   `json:"ids"`
+	NoradIDs []int   `json:"noradIds"`
+	Name     *string `json:"name"`
 }
 
 type FindSatelliteResponse struct {

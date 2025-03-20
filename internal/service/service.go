@@ -8,20 +8,19 @@ import (
 	"time"
 
 	"github.com/BabyLev/Umka-1/internal/clients/r4uab"
-	"github.com/BabyLev/Umka-1/internal/repo/satellites"
+	satellitesRepo "github.com/BabyLev/Umka-1/internal/repo/satellites"
 	"github.com/BabyLev/Umka-1/internal/storage"
-	"github.com/BabyLev/Umka-1/internal/types"
 	"github.com/BabyLev/Umka-1/satellite"
 	"github.com/go-chi/chi/v5"
 )
 
 type Service struct {
-	repo        *satellites.Repo
+	repo        *satellitesRepo.Repo
 	storage     *storage.Storage
 	r4uabClient *r4uab.Client
 }
 
-func New(storage *storage.Storage, rClient *r4uab.Client, repo *satellites.Repo) *Service {
+func New(storage *storage.Storage, rClient *r4uab.Client, repo *satellitesRepo.Repo) *Service {
 	return &Service{
 		storage:     storage,
 		r4uabClient: rClient,
@@ -52,12 +51,14 @@ func (s *Service) Calculate(w http.ResponseWriter, r *http.Request) {
 		t = time.Now()
 	}
 
-	sat, err := s.storage.GetSatellite(int(req.SatelliteID))
+	satRepo, err := s.repo.GetSatellite(r.Context(), int(req.SatelliteID))
 	if err != nil {
 		w.WriteHeader(400)
-		w.Write([]byte(fmt.Errorf("s.Storage.GetSatellite: %w", err).Error()))
+		w.Write([]byte(fmt.Errorf("s.repo.GetSatellite: %w", err).Error()))
 		return
 	}
+
+	sat := satellite.New(satRepo.Line1, satRepo.Line2)
 
 	satCoords, err := sat.Calculate(t.UTC())
 	if err != nil {
@@ -95,12 +96,14 @@ func (s *Service) LookAngles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sat, err := s.storage.GetSatellite(int(req.SatelliteID))
+	satRepo, err := s.repo.GetSatellite(r.Context(), int(req.SatelliteID))
 	if err != nil {
 		w.WriteHeader(400)
-		w.Write([]byte(fmt.Errorf("s.Storage.GetSatellite: %w", err).Error()))
+		w.Write([]byte(fmt.Errorf("s.repo.GetSatellite: %w", err).Error()))
 		return
 	}
+
+	sat := satellite.New(satRepo.Line1, satRepo.Line2)
 
 	var t time.Time
 
@@ -144,12 +147,14 @@ func (s *Service) VisibleTimeRange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sat, err := s.storage.GetSatellite(int(req.SatelliteID))
+	satRepo, err := s.repo.GetSatellite(r.Context(), int(req.SatelliteID))
 	if err != nil {
 		w.WriteHeader(400)
-		w.Write([]byte(fmt.Errorf("s.Storage.GetSatellite: %w", err).Error()))
+		w.Write([]byte(fmt.Errorf("s.repo.GetSatellite: %w", err).Error()))
 		return
 	}
+
+	sat := satellite.New(satRepo.Line1, satRepo.Line2)
 
 	var t time.Time
 
@@ -188,7 +193,7 @@ func (s *Service) DeleteSatellite(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id") // "123"
 
 	if i, err := strconv.Atoi(id); err == nil {
-		err := s.storage.DeleteSatellite(i)
+		err = s.repo.DeleteSatellite(r.Context(), i)
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(fmt.Errorf("s.Storage.DeleteSatellite: %w", err).Error()))
@@ -217,19 +222,31 @@ func (s *Service) FindSatellite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sats := s.storage.FindSatellite(req.Name)
+	filter := satellitesRepo.FilterSatellite{
+		IDs:      req.IDs,
+		NoradIDs: req.NoradIDs,
+		SatName:  req.Name,
+	}
+
+	sats, err := s.repo.FindSatellite(r.Context(), filter)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("s.repo.FindSatellite: %w", err).Error()))
+		return
+	}
 
 	var res FindSatelliteResponse
 
 	res.Satellites = make(map[int]Satellite, len(sats))
 
-	for k, s := range sats {
+	for id, s := range sats {
 		satellite := Satellite{
-			Line1: s.GetLine1(),
-			Line2: s.GetLine2(),
-			Name:  s.Name,
+			Line1:   s.Line1,
+			Line2:   s.Line2,
+			Name:    s.SatName,
+			NoradID: s.NoradID,
 		}
-		res.Satellites[k] = satellite
+		res.Satellites[id] = satellite
 	}
 
 	resJSON, err := json.Marshal(res)
@@ -239,6 +256,7 @@ func (s *Service) FindSatellite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(resJSON)
 }
 
@@ -253,16 +271,17 @@ func (s *Service) GetSatellite(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Errorf("ID невозможно преобразовать в число: %w", err).Error()))
 	}
 
-	sat, err := s.storage.GetSatellite(idInt)
+	satRepo, err := s.repo.GetSatellite(r.Context(), idInt)
 	if err != nil {
 		w.WriteHeader(500)
-		w.Write([]byte(fmt.Errorf("s.Storage.DeleteSatellite: %w", err).Error()))
+		w.Write([]byte(fmt.Errorf("s.Repo.GetSatellite: %w", err).Error()))
 		return
 	}
 
-	res.Line1 = sat.GetLine1()
-	res.Line2 = sat.GetLine2()
-	res.Name = sat.Name
+	res.Line1 = satRepo.Line1
+	res.Line2 = satRepo.Line2
+	res.Name = satRepo.SatName
+	res.NoradID = satRepo.NoradID
 
 	resJSON, err := json.Marshal(res)
 	if err != nil {
@@ -284,11 +303,7 @@ func (s *Service) UpdateSatellite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var sat satellite.Satellite
-
-	if req.Satellite.NoradID == nil {
-		sat = satellite.New(req.Satellite.Line1, req.Satellite.Line2)
-	} else {
+	if req.Satellite.NoradID != nil {
 		updatedSatInfo, err := s.r4uabClient.GetSatelliteInfo(r.Context(), *req.Satellite.NoradID)
 		if err != nil {
 			w.WriteHeader(500)
@@ -296,33 +311,22 @@ func (s *Service) UpdateSatellite(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		sat = satellite.New(updatedSatInfo.Line1, updatedSatInfo.Line2)
+		req.Satellite.Line1 = updatedSatInfo.Line1
+		req.Satellite.Line2 = updatedSatInfo.Line2
 	}
 
-	// надо проверить, передал ли клиент в запросе norad id.
-	// если передал, то перезаписываем в структуре нужного спутника в хранилище
-	if req.Satellite.NoradID == nil {
-		err = s.storage.UpdateSatellite(req.SatelliteID, types.Satellite{
-			Satellite: sat,
-			Name:      req.Satellite.Name,
-			NoradID:   nil,
-		})
-		if err != nil {
-			w.WriteHeader(500)
-			w.Write([]byte(fmt.Errorf("s.Storage.UpdateSatellite: %w", err).Error()))
-			return
-		}
-	} else {
-		err = s.storage.UpdateSatellite(req.SatelliteID, types.Satellite{
-			Satellite: sat,
-			Name:      req.Satellite.Name,
-			NoradID:   req.Satellite.NoradID,
-		})
-		if err != nil {
-			w.WriteHeader(500)
-			w.Write([]byte(fmt.Errorf("s.Storage.UpdateSatellite: %w", err).Error()))
-			return
-		}
+	satRepo := satellitesRepo.Satellite{
+		ID:      req.SatelliteID,
+		SatName: req.Satellite.Name,
+		NoradID: req.Satellite.NoradID,
+		Line1:   req.Satellite.Line1,
+		Line2:   req.Satellite.Line2,
+	}
+	err = s.repo.UpdateSatellite(r.Context(), satRepo)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("s.repo.UpdateSatellite: %w", err).Error()))
+		return
 	}
 
 	w.WriteHeader(200)
@@ -338,11 +342,7 @@ func (s *Service) AddSatellite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var sat satellite.Satellite
-
-	if req.NoradID == nil {
-		sat = satellite.New(req.Line1, req.Line2)
-	} else {
+	if req.NoradID != nil {
 		updatedSatInfo, err := s.r4uabClient.GetSatelliteInfo(r.Context(), *req.NoradID)
 		if err != nil {
 			w.WriteHeader(500)
@@ -350,14 +350,21 @@ func (s *Service) AddSatellite(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		sat = satellite.New(updatedSatInfo.Line1, updatedSatInfo.Line2)
+		req.Line1 = updatedSatInfo.Line1
+		req.Line2 = updatedSatInfo.Line2
 	}
 
-	satID := s.storage.AddSatellite(types.Satellite{
-		Satellite: sat,
-		Name:      req.Name,
-		NoradID:   req.NoradID,
+	satID, err := s.repo.CreateSatellite(r.Context(), satellitesRepo.Satellite{
+		SatName: req.Name,
+		NoradID: req.NoradID,
+		Line1:   req.Line1,
+		Line2:   req.Line2,
 	})
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("repo.CreateSatellite: %w", err).Error()))
+		return
+	}
 
 	res := AddSatelliteResponse{
 		SatelliteID: int64(satID),
