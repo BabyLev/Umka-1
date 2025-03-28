@@ -9,6 +9,7 @@ import (
 	"github.com/BabyLev/Umka-1/internal/clients/r4uab"
 	"github.com/BabyLev/Umka-1/internal/config"
 	"github.com/BabyLev/Umka-1/internal/jobs"
+	locationsRepo "github.com/BabyLev/Umka-1/internal/repo/locations"
 	satellitesRepo "github.com/BabyLev/Umka-1/internal/repo/satellites"
 	"github.com/BabyLev/Umka-1/internal/router"
 	"github.com/BabyLev/Umka-1/internal/service"
@@ -34,11 +35,14 @@ func main() {
 	}
 	defer conn.Close(ctx)
 
-	repo := satellitesRepo.New(conn)
+	repoSats := satellitesRepo.New(conn)
+	repoLocs := locationsRepo.New(conn)
 
 	r4uabClient := r4uab.New(cfg.R4uabURL)
-	service := service.New(storage, r4uabClient, repo)
+	service := service.New(r4uabClient, repoSats, repoLocs)
 	router := router.SetupRouter(service)
+
+	// TODO: repo
 	jobs := jobs.New(storage, r4uabClient)
 
 	done := make(chan struct{})

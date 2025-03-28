@@ -8,23 +8,24 @@ import (
 	"time"
 
 	"github.com/BabyLev/Umka-1/internal/clients/r4uab"
+	locationsRepo "github.com/BabyLev/Umka-1/internal/repo/locations"
 	satellitesRepo "github.com/BabyLev/Umka-1/internal/repo/satellites"
-	"github.com/BabyLev/Umka-1/internal/storage"
+	"github.com/BabyLev/Umka-1/internal/types"
 	"github.com/BabyLev/Umka-1/satellite"
 	"github.com/go-chi/chi/v5"
 )
 
 type Service struct {
-	repo        *satellitesRepo.Repo
-	storage     *storage.Storage
+	repoSats    *satellitesRepo.Repo
+	repoLocs    *locationsRepo.Repo
 	r4uabClient *r4uab.Client
 }
 
-func New(storage *storage.Storage, rClient *r4uab.Client, repo *satellitesRepo.Repo) *Service {
+func New(rClient *r4uab.Client, repoSats *satellitesRepo.Repo, repoLocs *locationsRepo.Repo) *Service {
 	return &Service{
-		storage:     storage,
 		r4uabClient: rClient,
-		repo:        repo,
+		repoSats:    repoSats,
+		repoLocs:    repoLocs,
 	}
 }
 
@@ -51,7 +52,7 @@ func (s *Service) Calculate(w http.ResponseWriter, r *http.Request) {
 		t = time.Now()
 	}
 
-	satRepo, err := s.repo.GetSatellite(r.Context(), int(req.SatelliteID))
+	satRepo, err := s.repoSats.GetSatellite(r.Context(), int(req.SatelliteID))
 	if err != nil {
 		w.WriteHeader(400)
 		w.Write([]byte(fmt.Errorf("s.repo.GetSatellite: %w", err).Error()))
@@ -96,7 +97,7 @@ func (s *Service) LookAngles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	satRepo, err := s.repo.GetSatellite(r.Context(), int(req.SatelliteID))
+	satRepo, err := s.repoSats.GetSatellite(r.Context(), int(req.SatelliteID))
 	if err != nil {
 		w.WriteHeader(400)
 		w.Write([]byte(fmt.Errorf("s.repo.GetSatellite: %w", err).Error()))
@@ -113,7 +114,7 @@ func (s *Service) LookAngles(w http.ResponseWriter, r *http.Request) {
 		t = time.Unix(*req.Timestamp, 0)
 	}
 
-	obsLoc, err := s.storage.GetLocation(int(req.ObserverPositionID))
+	obsLoc, err := s.repoLocs.GetLocation(r.Context(), int(req.ObserverPositionID))
 	if err != nil {
 		w.WriteHeader(400)
 		w.Write([]byte(fmt.Errorf("s.Storage.GetLocation: %w", err).Error()))
@@ -121,9 +122,9 @@ func (s *Service) LookAngles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	coords := satellite.ObserverCoords{
-		Lon: obsLoc.Location.Lon,
-		Lat: obsLoc.Location.Lat,
-		Alt: obsLoc.Location.Alt,
+		Lon: obsLoc.Point.Lon,
+		Lat: obsLoc.Point.Lat,
+		Alt: obsLoc.Point.Alt,
 	}
 
 	lookAngles := sat.LookAngles(t, coords)
@@ -147,7 +148,7 @@ func (s *Service) VisibleTimeRange(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	satRepo, err := s.repo.GetSatellite(r.Context(), int(req.SatelliteID))
+	satRepo, err := s.repoSats.GetSatellite(r.Context(), int(req.SatelliteID))
 	if err != nil {
 		w.WriteHeader(400)
 		w.Write([]byte(fmt.Errorf("s.repo.GetSatellite: %w", err).Error()))
@@ -193,7 +194,7 @@ func (s *Service) DeleteSatellite(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id") // "123"
 
 	if i, err := strconv.Atoi(id); err == nil {
-		err = s.repo.DeleteSatellite(r.Context(), i)
+		err = s.repoSats.DeleteSatellite(r.Context(), i)
 		if err != nil {
 			w.WriteHeader(500)
 			w.Write([]byte(fmt.Errorf("s.Storage.DeleteSatellite: %w", err).Error()))
@@ -228,7 +229,7 @@ func (s *Service) FindSatellite(w http.ResponseWriter, r *http.Request) {
 		SatName:  req.Name,
 	}
 
-	sats, err := s.repo.FindSatellite(r.Context(), filter)
+	sats, err := s.repoSats.FindSatellite(r.Context(), filter)
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Errorf("s.repo.FindSatellite: %w", err).Error()))
@@ -271,7 +272,7 @@ func (s *Service) GetSatellite(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Errorf("ID невозможно преобразовать в число: %w", err).Error()))
 	}
 
-	satRepo, err := s.repo.GetSatellite(r.Context(), idInt)
+	satRepo, err := s.repoSats.GetSatellite(r.Context(), idInt)
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Errorf("s.Repo.GetSatellite: %w", err).Error()))
@@ -322,7 +323,7 @@ func (s *Service) UpdateSatellite(w http.ResponseWriter, r *http.Request) {
 		Line1:   req.Satellite.Line1,
 		Line2:   req.Satellite.Line2,
 	}
-	err = s.repo.UpdateSatellite(r.Context(), satRepo)
+	err = s.repoSats.UpdateSatellite(r.Context(), satRepo)
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte(fmt.Errorf("s.repo.UpdateSatellite: %w", err).Error()))
@@ -354,7 +355,7 @@ func (s *Service) AddSatellite(w http.ResponseWriter, r *http.Request) {
 		req.Line2 = updatedSatInfo.Line2
 	}
 
-	satID, err := s.repo.CreateSatellite(r.Context(), satellitesRepo.Satellite{
+	satID, err := s.repoSats.CreateSatellite(r.Context(), satellitesRepo.Satellite{
 		SatName: req.Name,
 		NoradID: req.NoradID,
 		Line1:   req.Line1,
@@ -390,7 +391,21 @@ func (s *Service) AddLocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	locID := s.storage.AddLocation(req.ObserverLocation)
+	obs := locationsRepo.Location{
+		Name: req.ObserverLocation.Name,
+		Point: locationsRepo.Point{
+			Lon: req.ObserverLocation.Location.Lon,
+			Lat: req.Location.Lat,
+			Alt: req.Location.Alt,
+		},
+	}
+
+	locID, err := s.repoLocs.CreateLocation(r.Context(), obs)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("s.repoLocs.CreateLocation: %w", err).Error()))
+		return
+	}
 
 	res := AddLocationResponse{
 		ID: locID,
@@ -410,10 +425,10 @@ func (s *Service) DeleteLocation(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id") // "123"
 
 	if i, err := strconv.Atoi(id); err == nil {
-		err := s.storage.DeleteLocation(i)
+		err := s.repoLocs.DeleteLocation(r.Context(), i)
 		if err != nil {
 			w.WriteHeader(500)
-			w.Write([]byte(fmt.Errorf("s.Storage.DeleteLocation: %w", err).Error()))
+			w.Write([]byte(fmt.Errorf("s.repoLocs.DeleteLocation: %w", err).Error()))
 			return
 		}
 	} else {
@@ -436,15 +451,32 @@ func (s *Service) FindLocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	locs, err := s.storage.FindLocation(req.Name)
+	filter := locationsRepo.FilterLocation{
+		Name: &req.Name,
+	}
+
+	locs, err := s.repoLocs.FindLocation(r.Context(), filter)
 	if err != nil {
 		w.WriteHeader(500)
-		w.Write([]byte(fmt.Errorf("s.Storage.FindLocation: %w", err).Error()))
+		w.Write([]byte(fmt.Errorf("s.repoLocs.FindLocation: %w", err).Error()))
 		return
 	}
 
+	resLocations := make(map[int]types.ObserverLocation) // key - location id in db
+
+	for _, loc := range locs {
+		resLocations[loc.ID] = types.ObserverLocation{
+			Name: loc.Name,
+			Location: types.Location{
+				Lon: loc.Point.Lon,
+				Lat: loc.Point.Lat,
+				Alt: loc.Point.Alt,
+			},
+		}
+	}
+
 	res := FindLocationResponse{
-		Locations: locs,
+		Locations: resLocations,
 	}
 
 	resJSON, err := json.Marshal(res)
@@ -467,10 +499,20 @@ func (s *Service) UpdateLocation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = s.storage.UpdateLocation(req.LocationID, req.Location)
+	resLocation := locationsRepo.Location{
+		ID:   req.LocationID,
+		Name: req.Location.Name,
+		Point: locationsRepo.Point{
+			Lon: req.Location.Location.Lon,
+			Lat: req.Location.Location.Lat,
+			Alt: req.Location.Location.Alt,
+		},
+	}
+
+	err = s.repoLocs.UpdateLocation(r.Context(), resLocation)
 	if err != nil {
 		w.WriteHeader(500)
-		w.Write([]byte(fmt.Errorf("s.Storage.UpdateLocation: %w", err).Error()))
+		w.Write([]byte(fmt.Errorf("s.repoLocs.UpdateLocation: %w", err).Error()))
 		return
 	}
 

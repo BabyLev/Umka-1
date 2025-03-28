@@ -35,7 +35,8 @@ func (r *Repo) CreateSatellite(ctx context.Context, sat Satellite) (int, error) 
 func (r *Repo) GetSatellite(ctx context.Context, id int) (Satellite, error) {
 	sat := Satellite{}
 
-	err := r.conn.QueryRow(ctx, "select id, sat_name, norad_id, line1, line2 from satellites where id=$1", id).Scan(&sat.ID, &sat.SatName, &sat.NoradID, &sat.Line1, &sat.Line2)
+	err := r.conn.QueryRow(ctx, "select id, sat_name, norad_id, line1, line2 from satellites where id=$1", id).
+		Scan(&sat.ID, &sat.SatName, &sat.NoradID, &sat.Line1, &sat.Line2)
 	if err != nil {
 		return Satellite{}, err
 	}
@@ -110,5 +111,3 @@ func (r *Repo) DeleteSatellite(ctx context.Context, id int) error {
 
 	return nil
 }
-
-// CRUD Locations
