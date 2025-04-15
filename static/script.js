@@ -452,11 +452,31 @@ async function loadLocations(filter = {}) {
         console.log("Получен ответ от /location/:", result);
 
         // Дополнительная проверка и логгирование
-        const locationsFromResponse = result ? result.locations : undefined;
+        const locationsFromResponse = result ? result.locations : undefined; // Попытка 1 (стандартная)
         console.log("Извлеченные локации (result.locations):", locationsFromResponse);
 
-        allLocations = locationsFromResponse || {}; // Используем извлеченное значение
+        // Попытка 2: Обходной путь через ключи
+        let foundLocations = undefined;
+        if (result && typeof result === 'object') {
+             for (const key in result) {
+                 // Ищем ключ 'locations' регистронезависимо (на всякий случай)
+                 if (key.toLowerCase() === 'locations') {
+                     foundLocations = result[key];
+                     console.log(`Найдены локации через ключ '${key}':`, foundLocations);
+                     break;
+                 }
+             }
+        }
+        
+        // Используем найденные локации или пустой объект
+        allLocations = foundLocations || {}; 
         console.log("Данные для таблицы локаций (allLocations после присваивания):", allLocations);
+
+        // Проверка, что allLocations действительно объект (на случай, если API вернул что-то не то)
+        if (typeof allLocations !== 'object' || allLocations === null) {
+            console.error("allLocations не является объектом после получения данных!", allLocations);
+            allLocations = {};
+        }
 
         populateTable('locations-table-body', allLocations, createLocationRow);
         populateLocationDropdowns(); // Обновляем выпадающие списки
