@@ -2,19 +2,17 @@ package router
 
 import (
 	"net/http"
-	"path"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/BabyLev/Umka-1/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-const staticDir string = "../static"
-
-// ServeIndexHTML serves the main index.html file.
-func ServeIndexHTML(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(staticDir, "index.html"))
-}
+// Relative path to the frontend build output directory from the project root
+const staticDirRelative string = "web/dist"
 
 func SetupRouter(service *service.Service) *chi.Mux {
 	router := chi.NewRouter()
@@ -22,36 +20,84 @@ func SetupRouter(service *service.Service) *chi.Mux {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Logger)
 
-	// Serve index.html for the root path
-	router.Get("/", ServeIndexHTML)
+	// --- API routes --- Define API routes first
+	router.Route("/calculate", func(r chi.Router) {
+		r.Post("/", service.Calculate)
+	})
+	router.Route("/look-angles", func(r chi.Router) {
+		r.Post("/", service.LookAngles)
+	})
+	router.Route("/time-ranges", func(r chi.Router) {
+		r.Post("/", service.VisibleTimeRange)
+	})
+	router.Route("/satellite", func(r chi.Router) {
+		r.Put("/", service.AddSatellite)
+		r.Post("/", service.FindSatellite) // Keep POST for find as per service/readme
+		r.Patch("/", service.UpdateSatellite)
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", service.GetSatellite)
+			r.Delete("/", service.DeleteSatellite)
+		})
+	})
+	router.Route("/location", func(r chi.Router) {
+		r.Put("/", service.AddLocation)
+		r.Post("/", service.FindLocation)
+		r.Patch("/", service.UpdateLocation)
+		r.Route("/{id}", func(r chi.Router) {
+			r.Delete("/", service.DeleteLocation)
+			r.Get("/", service.GetLocation)
+		})
+	})
 
-	// Serve static files (CSS, JS, etc.)
-	// Create a file server handler for the static directory
-	fileServer := http.FileServer(http.Dir(staticDir))
+	// --- Static file serving for Vue SPA ---
+	workDir, _ := os.Getwd()
+	staticPath := filepath.Join(workDir, staticDirRelative)
+	staticRoot := http.Dir(staticPath)
 
-	// Mount the file server under the /static/ path prefix.
-	// http.StripPrefix removes the /static/ prefix before handing the request to the file server.
-	// This way, a request for /static/script.js will look for ./static/script.js
-	router.Handle("/static/*", http.StripPrefix("/static/", fileServer)) // Use Handle for catch-all under prefix
-
-	// API routes // маршруты
-	// расчет параметров спутника
-	router.Post("/calculate/", service.Calculate)          // возвращает длину, широту, долготу, адрес спутника на карте
-	router.Post("/look-angles/", service.LookAngles)       // возвращает азимут, элевацию, диапазон спутника
-	router.Post("/time-ranges/", service.VisibleTimeRange) // высчитывает временные диапазоны, когда видно спутник над заданной точкой в нужном количестве
-
-	// управление сохраненными спутниками
-	router.Put("/satellite/", service.AddSatellite)           // добавляет переданный спутник в хранилище и возращает его ID
-	router.Delete("/satellite/{id}", service.DeleteSatellite) // удаляет спутник из хранилища по ID
-	router.Post("/satellite/", service.FindSatellite)         // возвращает все спутники по переданному имени
-	router.Get("/satellite/{id}", service.GetSatellite)       // возвращает спутник по переданному ID
-	router.Patch("/satellite/", service.UpdateSatellite)      // принимает ID и новые данные спутника. Изменяет старые переменные на новые
-
-	// управление сохраненными локациями
-	router.Put("/location/", service.AddLocation)           // добавляет переданную локацию наблюдателя в хранилище и возращает ID
-	router.Delete("/location/{id}", service.DeleteLocation) // удаляет локацию наблюдателя из хранилища по ID
-	router.Post("/location/", service.FindLocation)         // возвращает все локации наблюдателя по переданному имени
-	router.Patch("/location/", service.UpdateLocation)      // принимает ID и новые данные локации наблюдателя. Изменяет старые переменные на новые
+	// This function handles serving static files and the SPA index.html fallback.
+	FileServer(router, "/", staticRoot)
 
 	return router
+}
+
+// FileServer conveniently sets up a http.FileServer handler to serve
+// static files from a http.FileSystem.
+// It includes SPA fallback logic: if a requested file isn't found,
+// it serves the index.html file.
+func FileServer(r chi.Router, publicPath string, root http.FileSystem) {
+	if strings.ContainsAny(publicPath, ":*") {
+		panic("FileServer does not permit URL parameters.")
+	}
+
+	// Define the handler for serving files
+	fs := http.StripPrefix(publicPath, http.FileServer(root))
+
+	// Ensure the public path ends with a slash for prefix matching
+	if publicPath != "/" && publicPath[len(publicPath)-1] != '/' {
+		r.Get(publicPath, http.RedirectHandler(publicPath+"/", http.StatusMovedPermanently).ServeHTTP)
+		publicPath += "/"
+	}
+
+	// Define the route for all paths under the public path
+	r.Get(publicPath+"*", func(w http.ResponseWriter, r *http.Request) {
+		// Get the requested file path relative to the static root
+		requestedFilePath := strings.TrimPrefix(r.URL.Path, publicPath)
+		// Try to open the file
+		f, err := root.Open(requestedFilePath)
+		if os.IsNotExist(err) {
+			// File not found, serve index.html for SPA routing
+			indexPath := filepath.Join(strings.TrimPrefix(publicPath, "/"), "index.html")
+			http.ServeFile(w, r, filepath.Join(string(root.(http.Dir)), indexPath))
+			return
+		}
+		if err != nil {
+			// Other error (e.g., permission denied)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+
+		// Serve the found file
+		fs.ServeHTTP(w, r)
+	})
 }

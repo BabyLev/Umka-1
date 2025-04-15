@@ -451,35 +451,30 @@ async function loadLocations(filter = {}) {
         const result = await fetchData('/location/', { method: 'POST', body: JSON.stringify(cleanFilter) });
         console.log("Получен ответ от /location/:", result);
 
-        // Дополнительная проверка и логгирование
-        const locationsFromResponse = result ? result.locations : undefined; // Попытка 1 (стандартная)
-        console.log("Извлеченные локации (result.locations):", locationsFromResponse);
-
-        // Попытка 2: Обходной путь через ключи
-        let foundLocations = undefined;
+        // Находим локации в результате, какой бы ни был формат
+        let foundLocations = {};
+        
         if (result && typeof result === 'object') {
-             for (const key in result) {
-                 // Ищем ключ 'locations' регистронезависимо (на всякий случай)
-                 if (key.toLowerCase() === 'locations') {
-                     foundLocations = result[key];
-                     console.log(`Найдены локации через ключ '${key}':`, foundLocations);
-                     break;
-                 }
-             }
+            // Проверяем стандартный формат с ключом 'locations'
+            if (result.locations && typeof result.locations === 'object') {
+                foundLocations = result.locations;
+            } else {
+                // Перебираем все ключи первого уровня, ища вложенный объект
+                for (const key in result) {
+                    if (typeof result[key] === 'object' && result[key] !== null) {
+                        // Если нашли объект, считаем его коллекцией локаций
+                        foundLocations = result[key];
+                        break;
+                    }
+                }
+            }
         }
         
-        // Используем найденные локации или пустой объект
         allLocations = foundLocations || {}; 
         console.log("Данные для таблицы локаций (allLocations после присваивания):", allLocations);
 
-        // Проверка, что allLocations действительно объект (на случай, если API вернул что-то не то)
-        if (typeof allLocations !== 'object' || allLocations === null) {
-            console.error("allLocations не является объектом после получения данных!", allLocations);
-            allLocations = {};
-        }
-
         populateTable('locations-table-body', allLocations, createLocationRow);
-        populateLocationDropdowns(); // Обновляем выпадающие списки
+        populateLocationDropdowns(); 
         return allLocations;
      } catch (err) {
          populateTable('locations-table-body', {}, createLocationRow);
