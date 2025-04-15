@@ -401,7 +401,6 @@ function setupLocationForms() {
         const formData = new FormData(addEditForm);
         const editId = formData.get('locationId') ? parseInt(formData.get('locationId')) : null;
 
-        // Собираем данные для location и location.location
         const locationData = {
             name: formData.get('name'),
             location: {
@@ -412,15 +411,15 @@ function setupLocationForms() {
         };
 
         try {
+            clearMessages(); // Очистим сообщения перед запросом
             if (editId) {
-                 const patchData = { locationID: editId, location: locationData }; // Обратите внимание на регистр ID
-                 await updateLocation(editId, patchData.location); // Передаем только данные локации
+                 const patchData = { locationID: editId, location: locationData }; 
+                 await updateLocation(editId, patchData.location); 
                  displaySuccess(`Локация ID ${editId} успешно обновлена.`);
             } else {
-                // Для добавления API ожидает { "observerLocation": { ... } }
-                const addData = { observerLocation: locationData };
-                const result = await addLocation(addData);
-                displaySuccess(`Локация успешно добавлена с ID: ${result.id}`);
+                // Передаем locationData напрямую, без обертки observerLocation
+                const result = await addLocation(locationData); 
+                displaySuccess(`Локация успешно добавлена с ID: ${result.id}`); // Используем result.id
             }
             resetLocationForm();
         } catch (err) {/* Ошибка уже отображена */}
@@ -461,10 +460,8 @@ async function loadLocations(filter = {}) {
 }
 
 async function addLocation(locationData) {
-    // API ожидает { "observerLocation": { "name": ..., "location": { ... } } }
-    // Убедимся, что структура верна
-    const body = { observerLocation: locationData.observerLocation || locationData };
-    const result = await fetchData('/location/', { method: 'PUT', body: JSON.stringify(body) });
+    // Отправляем данные как есть, без дополнительной обертки
+    const result = await fetchData('/location/', { method: 'PUT', body: JSON.stringify(locationData) });
     await loadLocations(); // Перезагрузить список
     return result;
 }

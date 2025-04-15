@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-const staticDir string = "static"
+const staticDir string = "../static"
 
 // ServeIndexHTML serves the main index.html file.
 func ServeIndexHTML(w http.ResponseWriter, r *http.Request) {
