@@ -1,10 +1,15 @@
 package router
 
 import (
+	"net/http"
+	"path"
+
 	"github.com/BabyLev/Umka-1/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
+
+const staticDir string = "../static/"
 
 func SetupRouter(service *service.Service) *chi.Mux {
 	router := chi.NewRouter()
@@ -13,8 +18,7 @@ func SetupRouter(service *service.Service) *chi.Mux {
 	router.Use(middleware.Logger)
 
 	// routes // маршруты
-	// маршрут для главной страницы
-	router.Get("/", service.MainPage) // "/" - path, root path // корневой путь
+	router.Get("/", ServeStatic)
 
 	// расчет параметров спутника
 	router.Post("/calculate/", service.Calculate)          // возвращает длину, широту, долготу, адрес спутника на карте
@@ -35,4 +39,8 @@ func SetupRouter(service *service.Service) *chi.Mux {
 	router.Patch("/location/", service.UpdateLocation)      // принимает ID и новые данные локации наблюдателя. Изменяет старые переменные на новые
 	// "/satellite/{id}"
 	return router
+}
+
+func ServeStatic(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, path.Join(staticDir, "index.html"))
 }
