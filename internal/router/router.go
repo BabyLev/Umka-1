@@ -9,7 +9,12 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-const staticDir string = "../static/"
+const staticDir string = "static"
+
+// ServeIndexHTML serves the main index.html file.
+func ServeIndexHTML(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, path.Join(staticDir, "index.html"))
+}
 
 func SetupRouter(service *service.Service) *chi.Mux {
 	router := chi.NewRouter()
@@ -17,9 +22,19 @@ func SetupRouter(service *service.Service) *chi.Mux {
 	router.Use(middleware.Recoverer)
 	router.Use(middleware.Logger)
 
-	// routes // маршруты
-	router.Get("/", ServeStatic)
+	// Serve index.html for the root path
+	router.Get("/", ServeIndexHTML)
 
+	// Serve static files (CSS, JS, etc.)
+	// Create a file server handler for the static directory
+	fileServer := http.FileServer(http.Dir(staticDir))
+
+	// Mount the file server under the /static/ path prefix.
+	// http.StripPrefix removes the /static/ prefix before handing the request to the file server.
+	// This way, a request for /static/script.js will look for ./static/script.js
+	router.Handle("/static/*", http.StripPrefix("/static/", fileServer)) // Use Handle for catch-all under prefix
+
+	// API routes // маршруты
 	// расчет параметров спутника
 	router.Post("/calculate/", service.Calculate)          // возвращает длину, широту, долготу, адрес спутника на карте
 	router.Post("/look-angles/", service.LookAngles)       // возвращает азимут, элевацию, диапазон спутника
@@ -37,10 +52,6 @@ func SetupRouter(service *service.Service) *chi.Mux {
 	router.Delete("/location/{id}", service.DeleteLocation) // удаляет локацию наблюдателя из хранилища по ID
 	router.Post("/location/", service.FindLocation)         // возвращает все локации наблюдателя по переданному имени
 	router.Patch("/location/", service.UpdateLocation)      // принимает ID и новые данные локации наблюдателя. Изменяет старые переменные на новые
-	// "/satellite/{id}"
-	return router
-}
 
-func ServeStatic(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(staticDir, "index.html"))
+	return router
 }

@@ -1,11 +1,272 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hello world</title>
+    <title>Umka-1 Панель Управления</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/style.css"> <!-- Исправленный путь -->
 </head>
-<body>
-    <h1>hello world</h1>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Панель Управления Спутниками</h1>
+
+        <!-- Навигация по вкладкам -->
+        <div class="mb-4 border-b border-gray-200">
+            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="tabs" role="tablist">
+                <li class="mr-2" role="presentation">
+                    <button class="inline-block p-4 border-b-2 rounded-t-lg" id="calculate-tab" data-tabs-target="#calculate" type="button" role="tab" aria-controls="calculate" aria-selected="false">Расчеты</button>
+                </li>
+                <li class="mr-2" role="presentation">
+                    <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300" id="satellites-tab" data-tabs-target="#satellites" type="button" role="tab" aria-controls="satellites" aria-selected="false">Спутники</button>
+                </li>
+                <li class="mr-2" role="presentation">
+                    <button class="inline-block p-4 border-b-2 rounded-t-lg hover:text-gray-600 hover:border-gray-300" id="locations-tab" data-tabs-target="#locations" type="button" role="tab" aria-controls="locations" aria-selected="false">Локации</button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Контент вкладок -->
+        <div id="tab-content">
+            <!-- Вкладка Расчеты -->
+            <div class="hidden p-4 rounded-lg bg-white space-y-6" id="calculate" role="tabpanel" aria-labelledby="calculate-tab">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Расчет параметров</h2>
+
+                <!-- Форма /calculate -->
+                <form id="calculate-pos-form" class="space-y-3 p-4 border rounded-lg bg-gray-50">
+                    <h3 class="font-medium text-gray-800">1. Расчет координат спутника</h3>
+                    <div>
+                        <label for="calc-pos-sat-id" class="block text-sm font-medium text-gray-700">Спутник:</label>
+                        <select id="calc-pos-sat-id" name="satelliteId" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <option value="">Загрузка...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="calc-pos-timestamp" class="block text-sm font-medium text-gray-700">Время (Unix Timestamp, необязательно):</label>
+                        <input type="number" id="calc-pos-timestamp" name="timestamp" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Рассчитать координаты
+                    </button>
+                </form>
+
+                <!-- Форма /look-angles -->
+                <form id="calculate-angles-form" class="space-y-3 p-4 border rounded-lg bg-gray-50">
+                    <h3 class="font-medium text-gray-800">2. Расчет углов места (азимут, элевация)</h3>
+                     <div>
+                        <label for="calc-angles-sat-id" class="block text-sm font-medium text-gray-700">Спутник:</label>
+                        <select id="calc-angles-sat-id" name="satelliteId" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                             <option value="">Загрузка...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="calc-angles-loc-id" class="block text-sm font-medium text-gray-700">Локация наблюдателя:</label>
+                        <select id="calc-angles-loc-id" name="observerPositionId" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                             <option value="">Загрузка...</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label for="calc-angles-timestamp" class="block text-sm font-medium text-gray-700">Время (Unix Timestamp, необязательно):</label>
+                        <input type="number" id="calc-angles-timestamp" name="timestamp" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Рассчитать углы
+                    </button>
+                </form>
+
+                <!-- Форма /time-ranges -->
+                 <form id="calculate-tr-form" class="space-y-3 p-4 border rounded-lg bg-gray-50">
+                     <h3 class="font-medium text-gray-800">3. Расчет диапазонов видимости</h3>
+                    <div>
+                        <label for="calc-tr-sat-id" class="block text-sm font-medium text-gray-700">Спутник:</label>
+                        <select id="calc-tr-sat-id" name="satelliteId" required class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                             <option value="">Загрузка...</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="calc-tr-lat" class="block text-sm font-medium text-gray-700">Широта (град):</label>
+                            <input type="number" step="any" id="calc-tr-lat" name="lat" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="calc-tr-lon" class="block text-sm font-medium text-gray-700">Долгота (град):</label>
+                            <input type="number" step="any" id="calc-tr-lon" name="lon" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="calc-tr-alt" class="block text-sm font-medium text-gray-700">Высота (км):</label>
+                            <input type="number" step="any" id="calc-tr-alt" name="alt" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+                     <div>
+                        <label for="calc-tr-count" class="block text-sm font-medium text-gray-700">Количество диапазонов (необязательно, по умолч. 1):</label>
+                        <input type="number" id="calc-tr-count" name="countOfTimeRanges" min="1" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                     <div>
+                        <label for="calc-tr-timestamp" class="block text-sm font-medium text-gray-700">Начальное время (Unix Timestamp, необязательно):</label>
+                        <input type="number" id="calc-tr-timestamp" name="timestamp" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Рассчитать диапазоны
+                    </button>
+                </form>
+
+                <!-- Область для вывода результатов -->
+                 <div id="calculate-results" class="mt-4 p-4 bg-gray-50 rounded border border-gray-200 min-h-[100px]">
+                    <h3 class="font-medium text-gray-800">Результаты:</h3>
+                    <pre class="text-sm text-gray-700 whitespace-pre-wrap"></pre>
+                 </div>
+            </div>
+            <!-- Вкладка Спутники -->
+            <div class="hidden p-4 rounded-lg bg-white space-y-6" id="satellites" role="tabpanel" aria-labelledby="satellites-tab">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Управление Спутниками</h2>
+
+                <!-- Форма добавления/редактирования спутника -->
+                 <form id="satellite-form" class="space-y-4 p-4 border rounded-lg bg-gray-50">
+                     <h3 id="satellite-form-title" class="font-medium text-gray-800">Добавить новый спутник</h3>
+                     <input type="hidden" id="satellite-edit-id" name="satelliteId">
+                     <div>
+                         <label for="satellite-name" class="block text-sm font-medium text-gray-700">Имя спутника:</label>
+                         <input type="text" id="satellite-name" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                     </div>
+                     <div>
+                         <label for="satellite-norad-id" class="block text-sm font-medium text-gray-700">NORAD ID (необязательно, TLE будет загружено автоматически):</label>
+                         <input type="number" id="satellite-norad-id" name="noradId" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                     </div>
+                     <div id="satellite-tle-inputs">
+                         <p class="text-sm text-gray-600">Или введите TLE вручную (если NORAD ID не указан):</p>
+                         <div>
+                             <label for="satellite-line1" class="block text-sm font-medium text-gray-700">TLE Line 1:</label>
+                             <input type="text" id="satellite-line1" name="line1" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono">
+                         </div>
+                         <div>
+                             <label for="satellite-line2" class="block text-sm font-medium text-gray-700">TLE Line 2:</label>
+                             <input type="text" id="satellite-line2" name="line2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm font-mono">
+                         </div>
+                     </div>
+                     <div>
+                         <button type="submit" id="satellite-form-submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                             Добавить спутник
+                         </button>
+                          <button type="button" id="satellite-form-cancel" onclick="resetSatelliteForm()" class="hidden ml-2 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                             Отмена
+                         </button>
+                     </div>
+                </form>
+
+                 <!-- Форма поиска спутников -->
+                 <form id="find-satellite-form" class="space-y-3 p-4 border rounded-lg bg-gray-50">
+                     <h3 class="font-medium text-gray-800">Поиск спутников</h3>
+                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                         <div>
+                             <label for="find-satellite-ids" class="block text-sm font-medium text-gray-700">ID (через запятую):</label>
+                             <input type="text" id="find-satellite-ids" name="ids" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                         </div>
+                         <div>
+                             <label for="find-satellite-norad-ids" class="block text-sm font-medium text-gray-700">NORAD ID (через запятую):</label>
+                             <input type="text" id="find-satellite-norad-ids" name="noradIds" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                         </div>
+                         <div>
+                             <label for="find-satellite-name" class="block text-sm font-medium text-gray-700">Имя (частичное совпадение):</label>
+                             <input type="text" id="find-satellite-name" name="name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                         </div>
+                     </div>
+                     <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                         Найти
+                     </button>
+                      <button type="button" onclick="loadSatellites(); this.form.reset();" class="ml-2 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                         Сбросить / Показать все
+                     </button>
+                 </form>
+
+                <!-- Таблица спутников -->
+                 <div id="satellites-table-container" class="mt-4 overflow-x-auto">
+                     <table class="min-w-full bg-white border border-gray-200">
+                         <thead class="bg-gray-50">
+                             <tr>
+                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
+                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">NORAD ID</th>
+                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
+                             </tr>
+                         </thead>
+                         <tbody class="bg-white divide-y divide-gray-200" id="satellites-table-body">
+                             <!-- Данные будут загружены через JS -->
+                         </tbody>
+                     </table>
+                 </div>
+            </div>
+            <!-- Вкладка Локации -->
+            <div class="hidden p-4 rounded-lg bg-white space-y-6" id="locations" role="tabpanel" aria-labelledby="locations-tab">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Управление Локациями Наблюдателей</h2>
+
+                 <!-- Форма добавления/редактирования локации -->
+                 <form id="location-form" class="space-y-4 p-4 border rounded-lg bg-gray-50">
+                     <h3 id="location-form-title" class="font-medium text-gray-800">Добавить новую локацию</h3>
+                     <input type="hidden" id="location-edit-id" name="locationId">
+                     <div>
+                         <label for="location-name" class="block text-sm font-medium text-gray-700">Имя локации:</label>
+                         <input type="text" id="location-name" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                     </div>
+                      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                         <div>
+                            <label for="location-lat" class="block text-sm font-medium text-gray-700">Широта (град):</label>
+                            <input type="number" step="any" id="location-lat" name="lat" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="location-lon" class="block text-sm font-medium text-gray-700">Долгота (град):</label>
+                            <input type="number" step="any" id="location-lon" name="lon" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="location-alt" class="block text-sm font-medium text-gray-700">Высота (км):</label>
+                            <input type="number" step="any" id="location-alt" name="alt" required value="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                     </div>
+                     <div>
+                         <button type="submit" id="location-form-submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                             Добавить локацию
+                         </button>
+                          <button type="button" id="location-form-cancel" onclick="resetLocationForm()" class="hidden ml-2 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                             Отмена
+                         </button>
+                     </div>
+                </form>
+
+                 <!-- Форма поиска локаций -->
+                 <form id="find-location-form" class="space-y-3 p-4 border rounded-lg bg-gray-50">
+                     <h3 class="font-medium text-gray-800">Поиск локаций</h3>
+                    <div>
+                         <label for="find-location-name" class="block text-sm font-medium text-gray-700">Имя (частичное совпадение):</label>
+                         <input type="text" id="find-location-name" name="name" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                     </div>
+                     <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                         Найти
+                     </button>
+                      <button type="button" onclick="loadLocations(); this.form.reset();" class="ml-2 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                         Сбросить / Показать все
+                     </button>
+                 </form>
+
+                <!-- Таблица локаций -->
+                 <div id="locations-table-container" class="mt-4 overflow-x-auto">
+                     <table class="min-w-full bg-white border border-gray-200">
+                         <thead class="bg-gray-50">
+                             <tr>
+                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Имя</th>
+                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Координаты (Ш, Д, В)</th>
+                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
+                             </tr>
+                         </thead>
+                         <tbody class="bg-white divide-y divide-gray-200" id="locations-table-body">
+                             <!-- Данные будут загружены через JS -->
+                         </tbody>
+                     </table>
+                 </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="/static/script.js"></script> <!-- Исправленный путь -->
 </body>
 </html>
