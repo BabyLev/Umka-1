@@ -450,8 +450,14 @@ async function loadLocations(filter = {}) {
         });
         const result = await fetchData('/location/', { method: 'POST', body: JSON.stringify(cleanFilter) });
         console.log("Получен ответ от /location/:", result);
-        allLocations = result.locations || {}; // Обновляем кэш
-        console.log("Данные для таблицы локаций:", allLocations);
+
+        // Дополнительная проверка и логгирование
+        const locationsFromResponse = result ? result.locations : undefined;
+        console.log("Извлеченные локации (result.locations):", locationsFromResponse);
+
+        allLocations = locationsFromResponse || {}; // Используем извлеченное значение
+        console.log("Данные для таблицы локаций (allLocations после присваивания):", allLocations);
+
         populateTable('locations-table-body', allLocations, createLocationRow);
         populateLocationDropdowns(); // Обновляем выпадающие списки
         return allLocations;
