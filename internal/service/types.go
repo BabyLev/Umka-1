@@ -51,7 +51,7 @@ type Satellite struct {
 	Line1   string `json:"line1"`
 	Line2   string `json:"line2"`
 	Name    string `json:"name"`
-	NoradID *int   `json:"noradId"`
+	NoradID *int64 `json:"noradId"`
 }
 
 type AddLocationRequest struct {

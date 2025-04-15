@@ -60,9 +60,15 @@ func (r *Repo) FindSatellite(ctx context.Context, filter FilterSatellite) ([]Sat
 		WHEN $3::text IS NOT NULL THEN sat_name ilike '%' || '$3::text' || '%'
 		ELSE true
 	END
+	AND CASE
+		WHEN $4::boolean IS NOT NULL THEN 
+			WHEN $4::boolean = TRUE THEN norad_id is not null
+			ELSE norad_id is null
+		ELSE true
+	END
 `
 
-	rows, err := r.conn.Query(ctx, query, filter.IDs, filter.NoradIDs, filter.SatName)
+	rows, err := r.conn.Query(ctx, query, filter.IDs, filter.NoradIDs, filter.SatName, filter.NoradIDNotNull)
 	if err != nil {
 		return nil, err
 	}

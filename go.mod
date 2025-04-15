@@ -9,6 +9,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/joshuaferrara/go-satellite v0.0.0-20220611180459-512638c64e5b
 	github.com/rs/zerolog v1.33.0
+	github.com/samber/lo v1.49.1
 )
 
 require (

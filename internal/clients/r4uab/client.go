@@ -32,7 +32,7 @@ func New(url string) *Client {
 	}
 }
 
-func (c *Client) GetSatelliteInfo(ctx context.Context, noradID int) (R4uabSat, error) {
+func (c *Client) GetSatelliteInfo(ctx context.Context, noradID int64) (R4uabSat, error) {
 	if noradID <= 0 {
 		return R4uabSat{}, fmt.Errorf("noradID должен быть больше 0")
 	}

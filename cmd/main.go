@@ -43,14 +43,8 @@ func main() {
 	router := router.SetupRouter(service)
 
 	// TODO: repo
-	jobs := jobs.New(storage, r4uabClient)
-
-	done := make(chan struct{})
-	defer func() {
-		done <- struct{}{}
-	}()
-
-	go jobs.Start(done)
+	jobs := jobs.New(storage, r4uabClient, repoSats)
+	go jobs.Start(ctx)
 
 	fmt.Println("Server running on localhost:8080")
 	err = http.ListenAndServe(fmt.Sprintf(":%d", cfg.HTTPPort), router)
