@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Repo struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func New(conn *pgx.Conn) *Repo {
+func New(pool *pgxpool.Pool) *Repo {
 	return &Repo{
-		conn: conn,
+		conn: pool,
 	}
 }
 
@@ -45,32 +45,44 @@ func (r *Repo) GetSatellite(ctx context.Context, id int) (Satellite, error) {
 }
 
 func (r *Repo) FindSatellite(ctx context.Context, filter FilterSatellite) ([]Satellite, error) {
-	query := `
-	select * from satellites 
-	where 1=1
-	AND CASE 
-		WHEN array_length($1::int[], 1) > 0 THEN id = ANY($1::int[])
-		ELSE true
-	END
-	AND CASE
-		WHEN array_length($2::int[], 1) > 0 THEN norad_id = ANY($2::int[])
-		ELSE true
-	END
-	AND CASE
-		WHEN $3::text IS NOT NULL THEN sat_name ilike '%' || '$3::text' || '%'
-		ELSE true
-	END
-	AND CASE
-		WHEN $4::boolean IS NOT NULL THEN 
-			WHEN $4::boolean = TRUE THEN norad_id is not null
-			ELSE norad_id is null
-		ELSE true
-	END
-`
+	var args []interface{}
+	query := "select id, sat_name, norad_id, line1, line2 from satellites where 1=1"
 
-	rows, err := r.conn.Query(ctx, query, filter.IDs, filter.NoradIDs, filter.SatName, filter.NoradIDNotNull)
+	argId := 1
+
+	if len(filter.IDs) > 0 {
+		query += fmt.Sprintf(" AND id = ANY($%d::int[])", argId)
+		args = append(args, filter.IDs)
+		argId++
+	}
+
+	if len(filter.NoradIDs) > 0 {
+		var noradIDs64 []int64
+		for _, id := range filter.NoradIDs {
+			noradIDs64 = append(noradIDs64, int64(id))
+		}
+		query += fmt.Sprintf(" AND norad_id = ANY($%d::bigint[])", argId)
+		args = append(args, noradIDs64)
+		argId++
+	}
+
+	if filter.SatName != nil && *filter.SatName != "" {
+		query += fmt.Sprintf(" AND sat_name ilike $%d", argId)
+		args = append(args, "%"+*filter.SatName+"%")
+		argId++
+	}
+
+	if filter.NoradIDNotNull != nil {
+		if *filter.NoradIDNotNull {
+			query += " AND norad_id IS NOT NULL"
+		} else {
+			query += " AND norad_id IS NULL"
+		}
+	}
+
+	rows, err := r.conn.Query(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ошибка выполнения запроса FindSatellite: %w", err) // Добавим контекст ошибке
 	}
 	defer rows.Close()
 
@@ -96,9 +108,9 @@ func (r *Repo) FindSatellite(ctx context.Context, filter FilterSatellite) ([]Sat
 
 func (r *Repo) UpdateSatellite(ctx context.Context, sat Satellite) error {
 	query := `
-		update satellites 
-		set sat_name = $1, norad_id = $2, line1 = $3, line2 = $4 
-		where id=$5
+	 update satellites 
+	 set sat_name = $1, norad_id = $2, line1 = $3, line2 = $4 
+	 where id=$5
 	`
 
 	_, err := r.conn.Exec(ctx, query, sat.SatName, sat.NoradID, sat.Line1, sat.Line2, sat.ID)

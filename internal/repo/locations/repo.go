@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Repo struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func New(conn *pgx.Conn) *Repo {
+func New(pool *pgxpool.Pool) *Repo {
 	return &Repo{
-		conn: conn,
+		conn: pool,
 	}
 }
 
@@ -47,9 +47,9 @@ func (r *Repo) GetLocation(ctx context.Context, id int) (Location, error) {
 
 func (r *Repo) UpdateLocation(ctx context.Context, loc Location) error {
 	query := `
-		update locations 
-		set loc_name = $1, lon = $2, lat = $3, alt = $4 
-		where id=$5
+	 update locations 
+	 set loc_name = $1, lon = $2, lat = $3, alt = $4 
+	 where id=$5
 	`
 
 	_, err := r.conn.Exec(ctx, query, loc.Name, loc.Point.Lon, loc.Point.Lat, loc.Point.Alt, loc.ID)
