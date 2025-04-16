@@ -440,6 +440,7 @@ function setupLocationForms() {
 
 
 async function loadLocations(filter = {}) {
+     console.log("Загрузка локаций с фильтром:", filter);
      try {
         const cleanFilter = { ...filter };
         Object.keys(cleanFilter).forEach(key => {
@@ -448,9 +449,32 @@ async function loadLocations(filter = {}) {
             }
         });
         const result = await fetchData('/location/', { method: 'POST', body: JSON.stringify(cleanFilter) });
-        allLocations = result.locations || {}; // Обновляем кэш
+        console.log("Получен ответ от /location/:", result);
+
+        // Находим локации в результате, какой бы ни был формат
+        let foundLocations = {};
+        
+        if (result && typeof result === 'object') {
+            // Проверяем стандартный формат с ключом 'locations'
+            if (result.locations && typeof result.locations === 'object') {
+                foundLocations = result.locations;
+            } else {
+                // Перебираем все ключи первого уровня, ища вложенный объект
+                for (const key in result) {
+                    if (typeof result[key] === 'object' && result[key] !== null) {
+                        // Если нашли объект, считаем его коллекцией локаций
+                        foundLocations = result[key];
+                        break;
+                    }
+                }
+            }
+        }
+        
+        allLocations = foundLocations || {}; 
+        console.log("Данные для таблицы локаций (allLocations после присваивания):", allLocations);
+
         populateTable('locations-table-body', allLocations, createLocationRow);
-        populateLocationDropdowns(); // Обновляем выпадающие списки
+        populateLocationDropdowns(); 
         return allLocations;
      } catch (err) {
          populateTable('locations-table-body', {}, createLocationRow);
@@ -603,8 +627,13 @@ function displayResults(elementId, data) {
 }
 
 function populateTable(tbodyId, data, createRowFunction) {
+    console.log(`Заполнение таблицы: tbodyId=${tbodyId}, data=`, data);
     const tbody = document.getElementById(tbodyId);
-    if (!tbody) return;
+    if (!tbody) {
+        console.error(`Не найден элемент tbody с ID: ${tbodyId}`);
+        return;
+    }
+    console.log("Найден tbody:", tbody);
 
     tbody.innerHTML = ''; // Очистить таблицу перед заполнением
 
@@ -618,11 +647,16 @@ function populateTable(tbodyId, data, createRowFunction) {
 
     for (const id of sortedIds) {
         const item = data[id];
+        console.log(`Обработка элемента: id=${id}, item=`, item);
         const row = createRowFunction(id, item);
         if (row) {
+             console.log(`Создана строка для id=${id}:`, row);
             tbody.appendChild(row);
+        } else {
+             console.warn(`Функция createRowFunction не вернула строку для id=${id}`);
         }
     }
+    console.log("Заполнение таблицы завершено для", tbodyId);
 }
 
 // --- Функции создания строк таблиц и подтверждения удаления (без изменений) --- //
@@ -644,6 +678,7 @@ function createSatelliteRow(id, satellite) {
 }
 
 function createLocationRow(id, location) {
+    console.log(`Создание строки для локации: id=${id}, location=`, location);
     const tr = document.createElement('tr');
     const coords = location.location ? `Ш: ${location.location.lat?.toFixed(6)}, Д: ${location.location.lon?.toFixed(6)}, В: ${location.location.alt?.toFixed(3)}` : 'N/A';
     tr.innerHTML = `

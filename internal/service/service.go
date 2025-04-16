@@ -240,14 +240,14 @@ func (s *Service) FindSatellite(w http.ResponseWriter, r *http.Request) {
 
 	res.Satellites = make(map[int]Satellite, len(sats))
 
-	for id, s := range sats {
+	for _, sat := range sats {
 		satellite := Satellite{
-			Line1:   s.Line1,
-			Line2:   s.Line2,
-			Name:    s.SatName,
-			NoradID: s.NoradID,
+			Line1:   sat.Line1,
+			Line2:   sat.Line2,
+			Name:    sat.SatName,
+			NoradID: sat.NoradID,
 		}
-		res.Satellites[id] = satellite
+		res.Satellites[sat.ID] = satellite
 	}
 
 	resJSON, err := json.Marshal(res)
@@ -409,6 +409,41 @@ func (s *Service) AddLocation(w http.ResponseWriter, r *http.Request) {
 
 	res := AddLocationResponse{
 		ID: locID,
+	}
+
+	resJSON, err := json.Marshal(res)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("error marshalling: %w", err).Error()))
+		return
+	}
+
+	w.Write(resJSON)
+}
+
+func (s *Service) GetLocation(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	idInt, err := strconv.Atoi(id)
+	if err != nil {
+		w.WriteHeader(400)
+		w.Write([]byte(fmt.Errorf("ID невозможно преобразовать в число: %w", err).Error()))
+	}
+
+	loc, err := s.repoLocs.GetLocation(r.Context(), idInt)
+	if err != nil {
+		w.WriteHeader(500)
+		w.Write([]byte(fmt.Errorf("s.repoLocs.GetLocation: %w", err).Error()))
+		return
+	}
+
+	res := types.ObserverLocation{
+		Name: loc.Name,
+		Location: types.Location{
+			Lon: loc.Point.Lon,
+			Lat: loc.Point.Lat,
+			Alt: loc.Point.Alt,
+		},
 	}
 
 	resJSON, err := json.Marshal(res)

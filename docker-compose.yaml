@@ -5,19 +5,50 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    #        environment:
+    container_name: umka-backend
+    restart: unless-stopped
     ports:
-      - 8080:8080 # первый (до двоеточия) порт - это хост, второй порт - внутри контейнера
+      - "${HTTP_PORT:-8080}:8080"
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_CONN_STR=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-cocacola}@postgres:5432/${POSTGRES_DB:-umka}?sslmode=disable
+      - R4UAB_URL=${R4UAB_URL:-https://api.r4uab.ru}
+    networks:
+      - umka-network
+
+  frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: umka-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - umka
+    networks:
+      - umka-network
+
   postgres:
     image: postgres:latest
+    container_name: umka-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: cocacola
-      POSTGRES_DB: umka
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cocacola}
+      POSTGRES_DB: ${POSTGRES_DB:-umka}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - umka-network
 
 volumes:
   postgres_data:
+
+networks:
+  umka-network:
+    name: umka-network
+    driver: bridge
